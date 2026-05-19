@@ -1,0 +1,101 @@
+# apex.example.yaml
+#
+# Your personal health protocol. Copy this file and fill it in, or run /setup
+# in Telegram to have Apex generate it for you through an AI-guided interview.
+#
+# This file lives on S3 (not in the repo) after /setup runs.
+# To update: edit directly on S3, or say it in Telegram ("update my protein target to 200g").
+
+version: "2"
+
+profile:
+  name: "Your Name"
+  goal: "Describe your goal — e.g. lose fat + build muscle"
+  timezone: "America/New_York"        # IANA timezone string
+  start_date: "2026-01-01"            # When you started this program
+
+# Everything in tracking.metrics gets a log_X and get_X_logs tool automatically.
+# Add any metric — the bot generates the right tools at startup. No code changes needed.
+tracking:
+  metrics:
+    - name: sleep
+      type: numeric
+      unit: hours
+      daily_target: 8
+
+    - name: protein
+      type: numeric
+      unit: grams
+      daily_target: 180
+
+    - name: water
+      type: numeric
+      unit: oz
+      daily_target: 100
+
+    - name: weight
+      type: numeric
+      unit: lbs
+
+    - name: energy
+      type: scale           # 1–10 rating
+      min: 1
+      max: 10
+
+    # Add any metric you want — examples:
+    # - name: meditation
+    #   type: numeric
+    #   unit: minutes
+    #
+    # - name: hrv
+    #   type: numeric
+    #   unit: ms
+    #
+    # - name: steps
+    #   type: numeric
+    #   unit: steps
+    #   daily_target: 10000
+
+supplements:
+  morning:
+    - { name: "Vitamin D3+K2", dose: "5000 IU / 180mcg" }
+    - { name: "Creatine",      dose: "5g" }
+    - { name: "Omega-3",       dose: "2g EPA+DHA" }
+  evening:
+    - { name: "Magnesium Glycinate", dose: "400mg" }
+
+schedule:
+  # All times in HH:MM format, 24-hour, in your profile timezone.
+  morning_checkin: "07:00"
+  reminders:
+    - { time: "10:00", job: "water_reminder" }
+    - { time: "15:00", job: "water_reminder" }
+    - { time: "22:00", job: "bedtime_prompt" }
+
+# --- OPTIONAL: Compound Tracking ---
+# Remove this entire section if you are not tracking any compounds.
+# When present, compound tools + cycle reminders activate automatically.
+#
+# compounds:
+#   - name: "BPC-157"
+#     cycle:
+#       on_weeks: 8
+#       off_weeks: 4
+#     dosing:
+#       am: "250mcg"
+#       pm: "250mcg"
+#       days: "daily"
+#     # Set automatically when you send "[compound name] arrived" in Telegram.
+#     start_date: null
+#
+#   - name: "CJC-1295 + Ipamorelin"
+#     cycle:
+#       on_weeks: 12
+#       off_weeks: 4
+#     dosing:
+#       pm: "100mcg each"
+#       days: "daily"
+#     intro:
+#       - { through_day: 14, dose_pm: "100mcg each" }
+#       - { from_day: 15,    dose_pm: "200mcg each" }
+#     start_date: null
