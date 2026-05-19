@@ -1,16 +1,16 @@
 from __future__ import annotations
-from typing import Literal, Optional
+from typing import Literal
 from pydantic import BaseModel, Field
 
 
 class Metric(BaseModel):
     name: str
     type: Literal["numeric", "boolean", "scale", "text"] = "numeric"
-    unit: Optional[str] = None
-    daily_target: Optional[float] = None
-    min: Optional[float] = None
-    max: Optional[float] = None
-    description: Optional[str] = None
+    unit: str | None = None
+    daily_target: float | None = None
+    min: float | None = None
+    max: float | None = None
+    description: str | None = None
 
     @property
     def unit_str(self) -> str:
@@ -43,7 +43,7 @@ class Compound(BaseModel):
     cycle: dict
     dosing: dict
     intro: list[dict] = Field(default_factory=list)
-    start_date: Optional[str] = None
+    start_date: str | None = None
 
 
 class ScheduleReminder(BaseModel):
@@ -60,6 +60,6 @@ class Protocol(BaseModel):
     version: str = "2"
     profile: Profile
     tracking: TrackingConfig
-    supplements: Optional[Supplements] = None
-    compounds: Optional[list[Compound]] = None
+    supplements: Supplements | None = None
+    compounds: list[Compound] | None = None
     schedule: Schedule = Field(default_factory=Schedule)
