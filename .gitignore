@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+dist/
+build/
+
+# Env & secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfplan
+
+# AWS
+.aws/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Lambda artifacts
+*.zip
+
+# Internal docs — never committed
+.notes/
+
+# User protocol — generated via /setup, lives on S3
+apex.yaml
