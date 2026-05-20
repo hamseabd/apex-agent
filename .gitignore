@@ -16,10 +16,10 @@ build/
 
 # Terraform
 terraform/.terraform/
-terraform/.terraform.lock.hcl
 terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/*.tfplan
+terraform/*.tfvars
 
 # AWS
 .aws/
@@ -37,6 +37,10 @@ terraform/*.tfplan
 
 # Internal docs — never committed
 .notes/
+docs/
+
+# Claude Code local memory — never committed
+.claude/
 
 # User protocol — generated via /setup, lives on S3
 apex.yaml

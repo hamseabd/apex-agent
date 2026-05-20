@@ -1,8 +1,35 @@
 from __future__ import annotations
+import html as _html
 import json
+from datetime import date
+from functools import lru_cache
+
+import boto3
 
 from apex.infra.telegram import send
 from apex.infra.telemetry import logger
+
+_ALLOWED_PROTOCOL_KEYS = frozenset({
+    "goal", "metrics", "supplements", "schedule", "compounds", "profile", "version",
+})
+_MAX_CONTEXT_BYTES = 50_000
+
+@lru_cache(maxsize=1)
+def _bedrock_client():
+    from apex.settings import get_settings
+    return boto3.client("bedrock-runtime", region_name=get_settings().aws_region)
+
+
+def _call_llm(system_prompt: str, user_message: str) -> str:
+    """Single-shot Bedrock call — no agent overhead, no history accumulation."""
+    from apex.settings import get_settings
+    response = _bedrock_client().converse(
+        modelId=get_settings().bedrock_model_id,
+        system=[{"text": system_prompt}],
+        messages=[{"role": "user", "content": [{"text": user_message}]}],
+        inferenceConfig={"maxTokens": 2048},
+    )
+    return response["output"]["message"]["content"][0]["text"]
 
 _SETUP_TTL = 1800  # 30 minutes for setup flow
 
@@ -73,6 +100,11 @@ def handle_setup_message(text: str, step: str, context: dict, repos) -> None:
 
     if advance and extracted:
         updated = {**context.get("protocol", {}), **extracted}
+        if len(json.dumps(updated).encode()) > _MAX_CONTEXT_BYTES:
+            logger.warning("Extracted data too large, not advancing", extra={"size": len(json.dumps(updated))})
+            repos.users.set_state("setup_in_progress", context, ttl_seconds=_SETUP_TTL)
+            send("Something went wrong processing that — could you try rephrasing?")
+            return
         next_step = _next_stage(step)
         repos.users.set_state(
             "setup_in_progress",
@@ -94,14 +126,14 @@ def _next_stage(current: str) -> str:
 
 
 def _send_summary(protocol: dict) -> None:
-    goal = protocol.get("goal", "—")
+    goal = _html.escape(str(protocol.get("goal", "—")))
     metrics = protocol.get("metrics", [])
-    metrics_str = ", ".join(metrics) if metrics else "none"
+    metrics_str = _html.escape(", ".join(str(m) for m in metrics)) if metrics else "none"
     sc = protocol.get("schedule", {})
     checkin = sc.get("morning_checkin", "07:00")
     compounds = protocol.get("compounds") or []
     compound_str = (
-        f"\nCompounds: {', '.join(c['name'] if isinstance(c, dict) else c for c in compounds)}"
+        f"\nCompounds: {_html.escape(', '.join(c['name'] if isinstance(c, dict) else str(c) for c in compounds))}"
         if compounds else ""
     )
     send(
@@ -116,21 +148,24 @@ def _send_summary(protocol: dict) -> None:
 
 def _apply_edit(text: str, context: dict, repos) -> None:
     """User wants to change something in the summary — use Claude."""
-    from strands import Agent
-    agent = Agent(
+    raw = _call_llm(
         system_prompt=(
             "The user wants to change their health protocol before confirming. "
             "Apply the change and return ONLY JSON (no markdown): "
             '{"updated_protocol": {...}, "reply": "<confirmation message>"}'
-        )
+        ),
+        user_message=(
+            f"Current protocol: {json.dumps(context.get('protocol', {}))}\n"
+            f"User change: {text}"
+        ),
     )
-    raw = str(agent(
-        f"Current protocol: {json.dumps(context.get('protocol', {}))}\n"
-        f"User change: {text}"
-    ))
     try:
         envelope = json.loads(raw)
         updated = envelope.get("updated_protocol", context.get("protocol", {}))
+        if not isinstance(updated, dict):
+            send("I couldn't apply that change — please try rephrasing.")
+            return
+        updated = {k: v for k, v in updated.items() if k in _ALLOWED_PROTOCOL_KEYS}
         reply = envelope.get("reply", "Updated.")
         repos.users.set_state(
             "setup_in_progress",
@@ -169,7 +204,7 @@ def _finalize(protocol: dict, repos) -> None:
                 "name": protocol.get("profile", {}).get("name", "User") if isinstance(protocol.get("profile"), dict) else "User",
                 "goal": protocol.get("goal", ""),
                 "timezone": "America/New_York",
-                "start_date": __import__("datetime").date.today().isoformat(),
+                "start_date": date.today().isoformat(),
             },
             "tracking": {
                 "metrics": [
@@ -201,8 +236,7 @@ def _finalize(protocol: dict, repos) -> None:
 
 def _ask_claude(user_text: str, step: str, protocol_so_far: dict, instruction: str) -> str:
     """Call Claude for the current setup stage. Returns raw JSON string."""
-    from strands import Agent
-    agent = Agent(
+    return _call_llm(
         system_prompt=(
             f"You are guiding a health bot setup. Current stage: '{step}'. {instruction}\n\n"
             "Respond ONLY with a JSON object (no markdown fences) in this shape:\n"
@@ -211,9 +245,9 @@ def _ask_claude(user_text: str, step: str, protocol_so_far: dict, instruction: s
             '"advance": <true if you extracted all required data for this stage, false otherwise>}\n\n'
             "If the user asks a research question instead of answering, "
             "answer it in reply and set advance=false."
-        )
+        ),
+        user_message=(
+            f"Protocol so far: {json.dumps(protocol_so_far)}\n"
+            f"User: {user_text}"
+        ),
     )
-    return str(agent(
-        f"Protocol so far: {json.dumps(protocol_so_far)}\n"
-        f"User: {user_text}"
-    ))

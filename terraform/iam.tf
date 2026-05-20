@@ -18,7 +18,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
   statement {
     effect    = "Allow"
     actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-    resources = ["arn:aws:logs:*:*:*"]
+    resources = ["arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${var.project}_*:*"]
   }
 
   statement {
@@ -46,12 +46,6 @@ data "aws_iam_policy_document" "lambda_permissions" {
     effect    = "Allow"
     actions   = ["ssm:GetParameter", "ssm:GetParameters"]
     resources = ["arn:aws:ssm:${var.aws_region}:*:parameter/${var.project}/*"]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = ["kms:Decrypt"]
-    resources = ["*"]
   }
 
   statement {

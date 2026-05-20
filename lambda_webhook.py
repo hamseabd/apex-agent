@@ -38,8 +38,9 @@ def handler(event: dict, context: LambdaContext) -> dict:
         # Redirect to /setup if protocol not yet created
         from apex.infra.storage import ProtocolStore
         store = ProtocolStore()
+        protocol_exists = store.exists()
 
-        if text != "/setup" and not store.exists():
+        if text != "/setup" and not protocol_exists:
             send("👋 Welcome to Apex! Send /setup to configure your personal protocol.")
             return {"statusCode": 200}
 
@@ -47,7 +48,8 @@ def handler(event: dict, context: LambdaContext) -> dict:
         repos = Repositories()
 
         agent = None
-        if store.exists():
+        state, _ = repos.users.get_state()
+        if protocol_exists and text != "/setup" and state != "setup_in_progress":
             protocol = store.load()
             from apex.agent import build_agent
             agent = build_agent(protocol, repos, store)

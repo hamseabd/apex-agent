@@ -34,12 +34,13 @@ def send(text: str, parse_mode: str = "HTML") -> None:
     })
 
 
-def send_with_keyboard(text: str, reply_markup: dict) -> None:
+def send_with_keyboard(text: str, reply_markup: dict, parse_mode: str = "HTML") -> None:
     """Send a message with an inline keyboard."""
     s = get_settings()
     _post("sendMessage", {
         "chat_id": s.telegram_chat_id,
         "text": text,
+        "parse_mode": parse_mode,
         "reply_markup": reply_markup,
     })
 
@@ -51,7 +52,7 @@ def edit_message(message_id: int, text: str, reply_markup: dict | None = None) -
         "chat_id": s.telegram_chat_id,
         "message_id": message_id,
         "text": text,
-        "parse_mode": "Markdown",
+        "parse_mode": "HTML",
     }
     if reply_markup:
         payload["reply_markup"] = reply_markup

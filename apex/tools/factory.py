@@ -4,7 +4,7 @@ from datetime import date
 from strands import tool
 
 from apex.domain.models import Metric, Protocol
-from apex.tools.core import CORE_TOOLS
+from apex.tools.core import build_core_tools
 
 
 def _today() -> str:
@@ -46,7 +46,7 @@ def _make_read_tool(metric: Metric, repos):
     return tool(read_fn)
 
 
-def build_tools(protocol: Protocol, repos) -> list:
+def build_tools(protocol: Protocol, repos, store=None) -> list:
     """
     Generate the agent's complete tool list from the user's protocol.
 
@@ -54,7 +54,7 @@ def build_tools(protocol: Protocol, repos) -> list:
     gets a log_<name> and get_<name>_logs tool. Adding a new metric to the
     protocol creates new tools automatically — no code changes needed.
     """
-    tools = list(CORE_TOOLS)
+    tools = build_core_tools(repos, store) if store else []
 
     for metric in protocol.tracking.metrics:
         tools.append(_make_log_tool(metric, repos))

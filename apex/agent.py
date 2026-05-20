@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from strands import Agent
+from strands.models import BedrockModel
 
 from apex.domain.models import Protocol
 from apex.infra.db import Repositories
 from apex.infra.storage import ProtocolStore
 from apex.infra.telemetry import logger
+from apex.settings import get_settings
 from apex.tools.factory import build_tools
 
 _SYSTEM_PROMPT = """You are Apex — a personal health and performance accountability coach.
@@ -33,6 +35,7 @@ def build_agent(protocol: Protocol, repos: Repositories, store: ProtocolStore) -
     Build a Strands Agent with tools generated from the user's protocol.
     Called at Lambda cold start. Tool list is dynamic — derived entirely from protocol.
     """
-    tools = build_tools(protocol, repos)
+    tools = build_tools(protocol, repos, store)
     logger.info("Agent built", extra={"tool_count": len(tools), "tools": [t.__name__ for t in tools]})
-    return Agent(system_prompt=_SYSTEM_PROMPT, tools=tools)
+    model = BedrockModel(model_id=get_settings().bedrock_model_id)
+    return Agent(system_prompt=_SYSTEM_PROMPT, tools=tools, model=model)

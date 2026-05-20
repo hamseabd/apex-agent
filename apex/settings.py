@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     config_bucket: str
     table_name: str = "apex"
 
+    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

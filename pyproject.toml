@@ -5,7 +5,6 @@ description = "Self-hosted Telegram health accountability bot with protocol-driv
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.37",
-    "python-telegram-bot>=21.10",
     "strands-agents>=1.30",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
