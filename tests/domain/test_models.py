@@ -68,3 +68,15 @@ def test_compound_start_date_none_by_default():
     )
     assert c.start_date is None
     assert c.intro == []
+
+
+def test_get_target_returns_value_for_known_metric():
+    from apex.domain.models import TrackingConfig, Metric
+    tc = TrackingConfig(metrics=[Metric(name="water", daily_target=100.0)])
+    assert tc.get_target("water") == 100.0
+
+
+def test_get_target_returns_none_for_unknown_metric():
+    from apex.domain.models import TrackingConfig
+    tc = TrackingConfig(metrics=[])
+    assert tc.get_target("sleep") is None

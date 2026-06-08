@@ -20,6 +20,9 @@ class Metric(BaseModel):
 class TrackingConfig(BaseModel):
     metrics: list[Metric] = Field(default_factory=list)
 
+    def get_target(self, metric_name: str) -> float | None:
+        return next((m.daily_target for m in self.metrics if m.name == metric_name), None)
+
 
 class Profile(BaseModel):
     name: str
