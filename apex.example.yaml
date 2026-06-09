@@ -65,12 +65,14 @@ supplements:
     - { name: "Magnesium Glycinate", dose: "400mg" }
 
 schedule:
-  # All times in HH:MM format, 24-hour, in your profile timezone.
+  # morning_checkin time is in your profile timezone (HH:MM, 24-hour).
   morning_checkin: "07:00"
+  # Reminder times are in UTC (AWS EventBridge requirement).
+  # Convert your local times: 10am EST = 15:00 UTC, 3pm EST = 20:00 UTC, 10pm EST = 03:00 UTC (next day)
   reminders:
-    - { time: "10:00", job: "water_reminder" }
-    - { time: "15:00", job: "water_reminder" }
-    - { time: "22:00", job: "bedtime_prompt" }
+    - { time: "15:00", job: "water_reminder" }   # 10am EST
+    - { time: "20:00", job: "water_reminder" }   # 3pm EST
+    - { time: "03:00", job: "bedtime_prompt" }   # 10pm EST (next UTC day)
 
 # --- OPTIONAL: Compound Tracking ---
 # Remove this entire section if you are not tracking any compounds.

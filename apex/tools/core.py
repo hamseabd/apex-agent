@@ -33,4 +33,45 @@ def build_core_tools(repos: Repositories, store: ProtocolStore) -> list:
             logger.error(f"Failed to load protocol: {e}")
             return "Could not load protocol."
 
-    return [tool(get_today_status), tool(get_protocol_summary)]
+    def update_protocol(field_path: str, value: str) -> str:
+        """
+        Update a field in the user's health protocol using dot notation.
+        field_path examples: 'profile.goal', 'schedule.morning_checkin', 'tracking.metrics.0.daily_target'
+        value is always passed as a string and cast to match the existing field type.
+        """
+        try:
+            protocol = store.load()
+        except Exception:
+            return "Error: could not load protocol."
+        data = protocol.model_dump()
+        keys = field_path.split(".")
+        current = data
+        for key in keys[:-1]:
+            try:
+                current = current[int(key)] if isinstance(current, list) else current[key]
+            except (KeyError, IndexError, TypeError):
+                return f"Error: '{field_path}' not found in protocol."
+        final_key = keys[-1]
+        try:
+            existing_container = current
+            existing = current[int(final_key)] if isinstance(current, list) else current[final_key]
+        except (KeyError, IndexError, TypeError):
+            return f"Error: field '{final_key}' not found."
+        typed_key = int(final_key) if isinstance(current, list) else final_key
+        try:
+            if isinstance(existing, int):
+                current[typed_key] = int(value)
+            elif isinstance(existing, float):
+                current[typed_key] = float(value)
+            else:
+                current[typed_key] = value
+        except (ValueError, TypeError):
+            current[typed_key] = value
+        try:
+            from apex.domain.models import Protocol as ProtocolModel
+            store.save(ProtocolModel(**data))
+        except Exception as e:
+            return f"Error: could not save protocol — {e}"
+        return f"✅ Updated {field_path} → {current[typed_key]}."
+
+    return [tool(get_today_status), tool(get_protocol_summary), tool(update_protocol)]
