@@ -47,27 +47,31 @@ def build_core_tools(repos: Repositories, store: ProtocolStore) -> list:
         keys = field_path.split(".")
         current = data
         for key in keys[:-1]:
-            if not isinstance(current, dict) or key not in current:
+            try:
+                current = current[int(key)] if isinstance(current, list) else current[key]
+            except (KeyError, IndexError, TypeError):
                 return f"Error: '{field_path}' not found in protocol."
-            current = current[key]
         final_key = keys[-1]
-        if not isinstance(current, dict) or final_key not in current:
+        try:
+            existing_container = current
+            existing = current[int(final_key)] if isinstance(current, list) else current[final_key]
+        except (KeyError, IndexError, TypeError):
             return f"Error: field '{final_key}' not found."
-        existing = current[final_key]
+        typed_key = int(final_key) if isinstance(current, list) else final_key
         try:
             if isinstance(existing, int):
-                current[final_key] = int(value)
+                current[typed_key] = int(value)
             elif isinstance(existing, float):
-                current[final_key] = float(value)
+                current[typed_key] = float(value)
             else:
-                current[final_key] = value
+                current[typed_key] = value
         except (ValueError, TypeError):
-            current[final_key] = value
+            current[typed_key] = value
         try:
             from apex.domain.models import Protocol as ProtocolModel
             store.save(ProtocolModel(**data))
         except Exception as e:
             return f"Error: could not save protocol — {e}"
-        return f"✅ Updated {field_path} → {current[final_key]}."
+        return f"✅ Updated {field_path} → {current[typed_key]}."
 
     return [tool(get_today_status), tool(get_protocol_summary), tool(update_protocol)]

@@ -54,9 +54,12 @@ def bedtime_prompt() -> None:
 
 def missed_day_check() -> None:
     from apex.infra.db import Repositories
-    from datetime import date
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+    protocol = _load_protocol_safe()
+    tz = ZoneInfo(protocol.profile.timezone) if protocol else timezone.utc
+    today = datetime.now(tz).strftime("%Y-%m-%d")
     repos = Repositories()
-    today = date.today().isoformat()
     logs = repos.logs.get_day(today)
     if not logs:
         send(
@@ -88,7 +91,6 @@ def weekly_summary() -> None:
 
 _REGISTRY = {
     "morning_checkin": morning_checkin,
-    "run_reminders": run_reminders,
     "water_reminder": water_reminder,
     "bedtime_prompt": bedtime_prompt,
     "missed_day_check": missed_day_check,
