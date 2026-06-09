@@ -48,8 +48,8 @@ def test_factory_correct_tool_count():
     store = MagicMock()
     protocol = _make_protocol(["sleep", "protein"])
     tools = build_tools(protocol, repos, store)
-    # 2 metrics × 2 tools + 2 core tools (get_today_status, get_protocol_summary)
-    assert len(tools) == 2 * 2 + 2
+    # 2 metrics × 2 tools + 3 core tools (get_today_status, get_protocol_summary, update_protocol)
+    assert len(tools) == 2 * 2 + 3
 
 
 def test_log_tool_writes_to_repo():

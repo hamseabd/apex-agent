@@ -33,4 +33,41 @@ def build_core_tools(repos: Repositories, store: ProtocolStore) -> list:
             logger.error(f"Failed to load protocol: {e}")
             return "Could not load protocol."
 
-    return [tool(get_today_status), tool(get_protocol_summary)]
+    def update_protocol(field_path: str, value: str) -> str:
+        """
+        Update a field in the user's health protocol using dot notation.
+        field_path examples: 'profile.goal', 'schedule.morning_checkin', 'tracking.metrics.0.daily_target'
+        value is always passed as a string and cast to match the existing field type.
+        """
+        try:
+            protocol = store.load()
+        except Exception:
+            return "Error: could not load protocol."
+        data = protocol.model_dump()
+        keys = field_path.split(".")
+        current = data
+        for key in keys[:-1]:
+            if not isinstance(current, dict) or key not in current:
+                return f"Error: '{field_path}' not found in protocol."
+            current = current[key]
+        final_key = keys[-1]
+        if not isinstance(current, dict) or final_key not in current:
+            return f"Error: field '{final_key}' not found."
+        existing = current[final_key]
+        try:
+            if isinstance(existing, int):
+                current[final_key] = int(value)
+            elif isinstance(existing, float):
+                current[final_key] = float(value)
+            else:
+                current[final_key] = value
+        except (ValueError, TypeError):
+            current[final_key] = value
+        try:
+            from apex.domain.models import Protocol as ProtocolModel
+            store.save(ProtocolModel(**data))
+        except Exception as e:
+            return f"Error: could not save protocol — {e}"
+        return f"✅ Updated {field_path} → {current[final_key]}."
+
+    return [tool(get_today_status), tool(get_protocol_summary), tool(update_protocol)]
