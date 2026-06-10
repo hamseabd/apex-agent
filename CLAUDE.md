@@ -47,7 +47,7 @@ version: "2"
 profile: { name, goal, timezone, start_date }
 tracking:
   metrics:
-    - { name, type, unit, daily_target }   # any metric — generates tools
+    - { name, type, unit, daily_target, category }   # any metric — generates tools
 supplements:
   morning: [{name, dose}]
   evening: [{name, dose}]
@@ -100,7 +100,7 @@ tests/
 ## Testing
 
 ```bash
-.venv/bin/pytest tests/ -v        # full suite (25 tests, ~2s)
+.venv/bin/pytest tests/ -v        # full suite (116 tests, ~4s)
 .venv/bin/pytest tests/domain/ -v  # pure unit tests
 .venv/bin/pytest tests/integration/ -v  # moto integration tests
 ```
@@ -112,9 +112,9 @@ Tests use moto fixtures from `tests/conftest.py` — no real AWS calls needed.
 | Sprint | Status | Delivers |
 |--------|--------|----------|
 | **1** | ✅ Complete | Foundation + dynamic tool engine + /setup + CI |
-| **2** | Next | Full /setup interview polish + proactive scheduling (protocol-driven EventBridge) |
-| **3** | Planned | Compounds module + cycle tracking + `[name] arrived` command |
-| **4** | Planned | Inline keyboards for one-tap logging + UX polish |
+| **2** | ✅ Complete | Setup integration tests + proactive scheduling (hourly EventBridge tick + protocol-driven reminders) + `update_protocol` tool |
+| **3** | ✅ Complete | Compounds module + cycle tracking + `[name] arrived` command |
+| **4** | ✅ Complete | Inline keyboards for one-tap logging + UX polish |
 
 ## Important Notes
 

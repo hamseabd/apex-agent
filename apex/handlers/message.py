@@ -8,7 +8,7 @@ from apex.infra.telegram import send
 
 
 @tracer.capture_method
-def handle(text: str, agent: Agent | None, repos: Repositories) -> None:
+def handle(text: str, agent: Agent | None, repos: Repositories, store=None) -> None:
     """Route an incoming text message."""
     state, context = repos.users.get_state()
 
@@ -27,6 +27,12 @@ def handle(text: str, agent: Agent | None, repos: Repositories) -> None:
         handle_setup_start(repos=repos)
         return
 
+    if store and store.exists():
+        protocol = store.load()
+        if _is_compound_arrival(text, protocol):
+            _handle_compound_arrival(text, protocol, store)
+            return
+
     if agent is None:
         send("Protocol not configured. Send /setup to get started.")
         return
@@ -34,3 +40,48 @@ def handle(text: str, agent: Agent | None, repos: Repositories) -> None:
     logger.info("Routing to agent", extra={"preview": text[:60]})
     response = str(agent(text))
     send(response)
+
+
+def _is_compound_arrival(text: str, protocol) -> bool:
+    """Check if text looks like '[compound name] arrived'."""
+    if not protocol or not protocol.compounds:
+        return False
+    text_lower = text.lower().strip()
+    if not text_lower.endswith("arrived"):
+        return False
+    prefix = text_lower.replace("arrived", "").strip().rstrip(",").strip()
+    if prefix in ("all", "peptides", "compounds"):
+        return True
+    from apex.domain.compound import matches_compound_name
+    return any(matches_compound_name(prefix, c.name) for c in protocol.compounds)
+
+
+def _handle_compound_arrival(text: str, protocol, store) -> None:
+    from datetime import date
+    from apex.infra.telegram import send
+    from apex.domain.compound import matches_compound_name
+    text_lower = text.lower().replace("arrived", "").strip()
+    compound_list = list(protocol.compounds or [])
+    activated = []
+    for c in compound_list:
+        if matches_compound_name(text_lower, c.name) or text_lower in ("all", "peptides", "compounds"):
+            c.start_date = date.today().isoformat()
+            activated.append(c)
+    if not activated:
+        send("Couldn't match that to any compound in your protocol.")
+        return
+    updated = protocol.model_copy(update={"compounds": compound_list})
+    store.save(updated)
+    lines = []
+    for c in activated:
+        from apex.domain.compound import CompoundCycle
+        cc = CompoundCycle.from_protocol(c.model_dump())
+        dose = cc.get_current_dose()
+        dose_str = " · ".join(f"{k}: {v}" for k, v in dose.items() if k != "days")
+        intro_note = " (intro stage active)" if cc.intro else ""
+        lines.append(f"• {c.name}: ON{intro_note} — {dose_str}")
+    send(
+        f"💉 <b>{'Compound' if len(activated) == 1 else 'Compounds'} activated!</b>\n\n"
+        + "\n".join(lines)
+        + "\n\nI'll remind you tonight."
+    )

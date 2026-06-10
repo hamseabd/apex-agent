@@ -59,3 +59,37 @@ def s3_bucket(aws_credentials):
         client = boto3.client("s3", region_name="us-east-1")
         client.create_bucket(Bucket="apex-test-bucket")
         yield client
+
+
+@pytest.fixture
+def aws_env(aws_credentials):
+    """Combined DynamoDB + S3 mock environment."""
+    with moto.mock_aws():
+        resource = boto3.resource("dynamodb", region_name="us-east-1")
+        table = resource.create_table(
+            TableName="apex-test",
+            KeySchema=[
+                {"AttributeName": "PK", "KeyType": "HASH"},
+                {"AttributeName": "SK", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "PK", "AttributeType": "S"},
+                {"AttributeName": "SK", "AttributeType": "S"},
+                {"AttributeName": "GSI1PK", "AttributeType": "S"},
+                {"AttributeName": "GSI1SK", "AttributeType": "S"},
+            ],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "GSI1",
+                    "KeySchema": [
+                        {"AttributeName": "GSI1PK", "KeyType": "HASH"},
+                        {"AttributeName": "GSI1SK", "KeyType": "RANGE"},
+                    ],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="apex-test-bucket")
+        yield {"table": table, "s3": s3}

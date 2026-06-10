@@ -62,6 +62,6 @@ def build_tools(protocol: Protocol, repos, store=None) -> list:
 
     if protocol.compounds:
         from apex.tools.compound import build_compound_tools
-        tools.extend(build_compound_tools(protocol.compounds, repos))
+        tools.extend(build_compound_tools(protocol.compounds, repos, store))
 
     return tools

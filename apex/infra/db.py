@@ -93,11 +93,11 @@ class UserRepository:
         item = resp.get("Item")
         if not item:
             return "idle", {}
-        ttl = item.get("ttl", 0)
+        ttl: Any = item.get("ttl", 0)
         now = int(datetime.now(timezone.utc).timestamp())
         if ttl and now > int(ttl):
             return "idle", {}
-        return item.get("state", "idle"), _decode(item.get("context", {}))
+        return str(item.get("state", "idle")), _decode(item.get("context", {}))
 
     def set_state(self, state: str, context: dict, ttl_seconds: int = 600) -> None:
         now = int(datetime.now(timezone.utc).timestamp())

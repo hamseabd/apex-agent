@@ -20,7 +20,9 @@ def handler(event: dict, context: LambdaContext) -> dict:
         if cq := body.get("callback_query"):
             if str(cq["message"]["chat"]["id"]) == s.telegram_chat_id:
                 from apex.handlers.callback import handle_callback
-                handle_callback(cq)
+                from apex.infra.db import Repositories
+                from apex.infra.storage import ProtocolStore
+                handle_callback(cq, repos=Repositories(), store=ProtocolStore())
             return {"statusCode": 200}
 
         message = body.get("message") or body.get("edited_message")
@@ -55,7 +57,7 @@ def handler(event: dict, context: LambdaContext) -> dict:
             agent = build_agent(protocol, repos, store)
 
         from apex.handlers.message import handle
-        handle(text=text, agent=agent, repos=repos)
+        handle(text=text, agent=agent, repos=repos, store=store)
 
     except Exception:
         logger.exception("Unhandled webhook error")

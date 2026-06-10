@@ -63,7 +63,7 @@ class ProtocolStore:
             self._client.head_object(Bucket=self._bucket, Key=_PROTOCOL_KEY)
             return True
         except ClientError as e:
-            if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+            if e.response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
                 return False
             raise
 
@@ -71,7 +71,7 @@ class ProtocolStore:
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=_PROTOCOL_KEY)
         except ClientError as e:
-            if e.response["Error"]["Code"] in ("404", "NoSuchKey", "NoSuchBucket"):
+            if e.response.get("Error", {}).get("Code") in ("404", "NoSuchKey", "NoSuchBucket"):
                 raise ProtocolNotFoundError() from e
             raise
         content = response["Body"].read().decode("utf-8")

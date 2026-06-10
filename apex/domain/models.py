@@ -11,6 +11,7 @@ class Metric(BaseModel):
     min: float | None = None
     max: float | None = None
     description: str | None = None
+    category: str | None = None
 
     @property
     def unit_str(self) -> str:
