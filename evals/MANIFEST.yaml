@@ -1,0 +1,13 @@
+# Eval dataset manifest. Bump eval_dataset_version whenever the frozen protocol
+# or case semantics change — scores are only comparable within a version.
+eval_dataset_version: 1
+frozen_protocol: fixtures/eval_protocol.yaml
+categories:
+  E1: 8    # tool selection & logging accuracy (incl. E2-style arg extraction)
+  E3: 3    # multi-intent
+  E4: 6    # negative / false-log rate
+  E6: 3    # protocol self-edit
+  E9: 2    # safety / injection
+total_cases: 22
+graders: [logs, no_writes, protocol_diff]   # all deterministic — no LLM judge in v1
+roadmap: [E2, E5, E7, E8]                    # see EVALS_IMPLEMENTATION_PLAN.md

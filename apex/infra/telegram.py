@@ -8,6 +8,20 @@ from apex.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+_MAX_MESSAGE_LEN = 4096  # Telegram sendMessage hard limit
+
+
+def _split(text: str):
+    """Split text into Telegram-sized chunks, preferring newline boundaries."""
+    while len(text) > _MAX_MESSAGE_LEN:
+        cut = text.rfind("\n", 0, _MAX_MESSAGE_LEN)
+        if cut <= 0:
+            cut = _MAX_MESSAGE_LEN
+        yield text[:cut]
+        text = text[cut:].lstrip("\n")
+    if text:
+        yield text
+
 
 def _post(method: str, payload: dict) -> None:
     s = get_settings()
@@ -27,11 +41,19 @@ def _post(method: str, payload: dict) -> None:
 def send(text: str, parse_mode: str = "HTML") -> None:
     """Send a message to the configured chat."""
     s = get_settings()
-    _post("sendMessage", {
-        "chat_id": s.telegram_chat_id,
-        "text": text,
-        "parse_mode": parse_mode,
-    })
+    for chunk in _split(text):
+        payload = {"chat_id": s.telegram_chat_id, "text": chunk}
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
+        try:
+            _post("sendMessage", payload)
+        except urllib.error.HTTPError as e:
+            # Agent output isn't guaranteed to be valid Telegram-HTML; a parse
+            # failure (400) must degrade to plain text, not a dropped message.
+            if e.code == 400 and parse_mode:
+                _post("sendMessage", {"chat_id": s.telegram_chat_id, "text": chunk})
+            else:
+                raise
 
 
 def send_with_keyboard(text: str, reply_markup: dict, parse_mode: str = "HTML") -> None:

@@ -4,13 +4,20 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Optional
 
+from apex.domain.dates import local_today
+
+# English function words that plausibly precede "arrived" — never treat them
+# as a partial compound name ("the arrived" must not activate "Theanine")
+_PARTIAL_STOPWORDS = {"the", "this", "that", "they", "just"}
+
 
 def matches_compound_name(text: str, name: str) -> bool:
     """Match user text against a compound name without substring false positives.
 
     Short names like "T" must only match as whole words — never inside
-    unrelated words ("the package"). A partial prefix ("bpc" for "BPC-157")
-    is accepted only when it's 3+ characters.
+    unrelated words ("the package"). A partial ("bpc" for "BPC-157") is
+    accepted only when it's 3+ characters, a *prefix* of the name (substring
+    matching would let "ani" activate "Theanine"), and not a stopword.
     """
     text_lower = text.lower().strip()
     name_lower = name.lower()
@@ -18,7 +25,11 @@ def matches_compound_name(text: str, name: str) -> bool:
         return True
     if re.search(rf"\b{re.escape(name_lower)}\b", text_lower):
         return True
-    return len(text_lower) >= 3 and text_lower in name_lower
+    return (
+        len(text_lower) >= 3
+        and text_lower not in _PARTIAL_STOPWORDS
+        and name_lower.startswith(text_lower)
+    )
 
 
 @dataclass
@@ -44,7 +55,7 @@ class CompoundCycle:
 
     def get_status(self, today: Optional[date] = None) -> dict:
         if today is None:
-            today = date.today()
+            today = local_today()
         if self.start_date is None:
             return {"status": "not_started", "current_day": 0, "days_remaining": 0}
 
@@ -77,7 +88,7 @@ class CompoundCycle:
     def get_current_dose(self, today: Optional[date] = None) -> dict:
         """Return today's dose, respecting intro stage overrides."""
         if today is None:
-            today = date.today()
+            today = local_today()
         if not self.intro or self.start_date is None:
             return self.dosing
 

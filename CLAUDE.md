@@ -100,9 +100,13 @@ tests/
 ## Testing
 
 ```bash
-.venv/bin/pytest tests/ -v        # full suite (116 tests, ~4s)
+.venv/bin/pytest tests/ -v        # full suite (153 tests, ~5s)
 .venv/bin/pytest tests/domain/ -v  # pure unit tests
 .venv/bin/pytest tests/integration/ -v  # moto integration tests
+
+# Behavioral evals (L2) — real Bedrock, mocked AWS. See EVALS.md.
+PYTHONPATH=. .venv/bin/pytest evals/ --collect-only -q   # free — lists 22 cases
+APEX_EVAL_LIVE=1 PYTHONPATH=. .venv/bin/pytest evals/ -m capability  # costs ~$0.40
 ```
 
 Tests use moto fixtures from `tests/conftest.py` — no real AWS calls needed.
@@ -115,10 +119,11 @@ Tests use moto fixtures from `tests/conftest.py` — no real AWS calls needed.
 | **2** | ✅ Complete | Setup integration tests + proactive scheduling (hourly EventBridge tick + protocol-driven reminders) + `update_protocol` tool |
 | **3** | ✅ Complete | Compounds module + cycle tracking + `[name] arrived` command |
 | **4** | ✅ Complete | Inline keyboards for one-tap logging + UX polish |
+| **5** | ✅ Complete | Full code review + fixes (CODE_REVIEW.md) + behavioral eval suite v1 (22-case state-graded harness, EVALS.md) |
 
 ## Important Notes
 
-- All times should be ET (Eastern Time). EventBridge cron rules use UTC.
+- Log dates and "what day is it" decisions use the protocol's `profile.timezone` (ET default) via `apex/domain/dates.py:local_today()`. **Exception:** `schedule.reminders` times and EventBridge cron rules are UTC (see `apex.example.yaml`) — a known limitation (CODE_REVIEW.md H2): fixed-UTC reminder times shift by an hour across DST.
 - `apex.yaml` is gitignored — it lives on S3, never in the repo.
 - `.notes/` is gitignored — contains internal architecture docs, ADRs, sprint notes.
 - The `compounds` section in `apex.yaml` is fully optional. Remove it and all compound logic is skipped gracefully.

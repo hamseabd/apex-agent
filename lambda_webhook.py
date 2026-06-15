@@ -13,8 +13,16 @@ from apex.settings import get_settings
 @metrics.log_metrics
 def handler(event: dict, context: LambdaContext) -> dict:
     try:
-        body = json.loads(event.get("body") or "{}")
         s = get_settings()
+
+        # Telegram webhook secret — rejects forged requests to the public URL.
+        if s.telegram_webhook_secret:
+            headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
+            if headers.get("x-telegram-bot-api-secret-token") != s.telegram_webhook_secret:
+                logger.warning("Webhook secret mismatch — rejecting request")
+                return {"statusCode": 403}
+
+        body = json.loads(event.get("body") or "{}")
 
         # Inline keyboard callback
         if cq := body.get("callback_query"):
@@ -50,6 +58,7 @@ def handler(event: dict, context: LambdaContext) -> dict:
         repos = Repositories()
 
         agent = None
+        protocol = None
         state, _ = repos.users.get_state()
         if protocol_exists and text != "/setup" and state != "setup_in_progress":
             protocol = store.load()
@@ -57,7 +66,7 @@ def handler(event: dict, context: LambdaContext) -> dict:
             agent = build_agent(protocol, repos, store)
 
         from apex.handlers.message import handle
-        handle(text=text, agent=agent, repos=repos, store=store)
+        handle(text=text, agent=agent, repos=repos, store=store, protocol=protocol)
 
     except Exception:
         logger.exception("Unhandled webhook error")

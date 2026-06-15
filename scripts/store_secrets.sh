@@ -24,4 +24,14 @@ aws ssm put-parameter \
   --overwrite \
   --region "$AWS_REGION"
 
-echo "Done. Secrets stored."
+# Webhook shared secret — Telegram echoes this back on every webhook call so the
+# Lambda can reject forged requests. Generated automatically; no input needed.
+WEBHOOK_SECRET=$(openssl rand -hex 32)
+aws ssm put-parameter \
+  --name "/apex/telegram_webhook_secret" \
+  --value "$WEBHOOK_SECRET" \
+  --type SecureString \
+  --overwrite \
+  --region "$AWS_REGION"
+
+echo "Done. Secrets stored (including generated webhook secret)."

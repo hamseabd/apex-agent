@@ -93,6 +93,10 @@ def handle_setup_message(text: str, step: str, context: dict, repos) -> None:
 
     reply = envelope.get("reply", "")
     extracted = envelope.get("extracted") or {}
+    if isinstance(extracted, dict):
+        extracted = {k: v for k, v in extracted.items() if k in _ALLOWED_PROTOCOL_KEYS}
+    else:
+        extracted = {}
     advance = envelope.get("advance", False)
 
     if reply:
@@ -222,9 +226,9 @@ def _finalize(protocol: dict, repos) -> None:
         store.save(model)
 
         send(
-            "Done! Run <code>./scripts/sync_schedule.sh</code> to activate your "
-            "reminder schedule on AWS.\n\n"
-            "Then just talk to me naturally — I'll log anything you mention."
+            "Done! Your reminders are live — the hourly scheduler picks them up "
+            "straight from your protocol.\n\n"
+            "Just talk to me naturally — I'll log anything you mention."
         )
     except Exception as e:
         logger.error(f"Setup finalization failed: {e}")

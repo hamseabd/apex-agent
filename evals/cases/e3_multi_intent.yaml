@@ -1,0 +1,32 @@
+# E3 — Multi-intent messages. One message, several loggable facts; all must land.
+# Grader: state-based (all expected rows present, nothing extra). Gate: >=90%.
+# NOTE: metrics restricted to the frozen eval protocol (sleep/protein/water/
+# weight/energy) — no "run" metric exists in the fixture.
+
+- id: e3-001
+  category: E3
+  grader: logs
+  utterance: "slept 8h, weight 183, energy 7"
+  expect_logs:
+    - { metric: sleep, value: 8 }
+    - { metric: weight, value: 183 }
+    - { metric: energy, value: 7 }
+  forbid_other_logs: true
+
+- id: e3-002
+  category: E3
+  grader: logs
+  utterance: "had 50g protein and drank 30oz water"
+  expect_logs:
+    - { metric: protein, value: 50 }
+    - { metric: water, value: 30 }
+  forbid_other_logs: true
+
+- id: e3-003
+  category: E3
+  grader: logs
+  utterance: "weight is 181 and my energy is a 5"
+  expect_logs:
+    - { metric: weight, value: 181 }
+    - { metric: energy, value: 5 }
+  forbid_other_logs: true

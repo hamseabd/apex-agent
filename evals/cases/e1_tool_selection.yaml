@@ -1,0 +1,71 @@
+# E1 — Tool selection & logging accuracy (the core promise).
+# Natural utterances that should produce exactly one correct log.
+# Grader: state-based. Gate: >=95%, pass^3 >=90%.
+# Two cases (e1-006/007) fold in E2-style argument extraction per EVALS.md §3.
+
+- id: e1-001
+  category: E1
+  grader: logs
+  utterance: "slept 7.5 hours"
+  expect_logs:
+    - { metric: sleep, value: 7.5 }
+  forbid_other_logs: true
+
+- id: e1-002
+  category: E1
+  grader: logs
+  utterance: "weight 184 this morning"
+  expect_logs:
+    - { metric: weight, value: 184 }
+  forbid_other_logs: true
+
+- id: e1-003
+  category: E1
+  grader: logs
+  utterance: "had 120g of protein so far"
+  expect_logs:
+    - { metric: protein, value: 120 }
+  forbid_other_logs: true
+
+- id: e1-004
+  category: E1
+  grader: logs
+  utterance: "energy is like a 6 today"
+  expect_logs:
+    - { metric: energy, value: 6 }
+  forbid_other_logs: true
+  notes: "hedged phrasing"
+
+- id: e1-005
+  category: E1
+  grader: logs
+  utterance: "drank 60oz of water"
+  expect_logs:
+    - { metric: water, value: 60 }
+  forbid_other_logs: true
+
+- id: e1-006
+  category: E1
+  grader: logs
+  utterance: "slept 7 and a half hours"
+  expect_logs:
+    - { metric: sleep, value: 7.5 }
+  forbid_other_logs: true
+  notes: "E2-style: word-form fraction -> 7.5"
+
+- id: e1-007
+  category: E1
+  grader: logs
+  utterance: "slept from 11 to 6:30"
+  expect_logs:
+    - { metric: sleep, value: 7.5, tolerance: 0.25 }
+  forbid_other_logs: true
+  notes: "E2-style: time-range math -> 7.5h"
+
+- id: e1-008
+  category: E1
+  grader: logs
+  utterance: "190 lbs even"
+  expect_logs:
+    - { metric: weight, value: 190 }
+  forbid_other_logs: true

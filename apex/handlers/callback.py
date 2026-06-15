@@ -1,6 +1,6 @@
 from __future__ import annotations
-from datetime import date
 
+from apex.domain.dates import protocol_today
 from apex.infra.telegram import answer_callback, edit_message, send
 from apex.infra.telemetry import logger, tracer
 
@@ -23,26 +23,29 @@ def handle_callback(callback_query: dict, repos=None, store=None) -> None:
     if data == "supps:all":
         _handle_supps_all(repos, store)
     elif data == "supps:none":
-        _handle_supps_none(repos)
+        _handle_supps_none(repos, store)
     elif data == "supps:partial":
         _handle_supps_partial_start(message_id, repos, store)
     elif data == "supps:partial:done":
-        _handle_partial_done(repos)
+        _handle_partial_done(repos, store)
     elif data == "compounds:all":
         _handle_compounds_all(repos, store)
     elif data == "compounds:none":
-        _handle_compounds_none(repos)
+        _handle_compounds_none(repos, store)
     elif data == "compounds:partial":
         _handle_compounds_partial_start(message_id, repos, store)
     elif data == "compounds:partial:done":
-        _handle_partial_done(repos)
+        _handle_partial_done(repos, store)
     elif data.startswith("toggle:"):
         _handle_toggle(data, message_id, repos)
     else:
         logger.warning(f"Unknown callback: {data}")
 
 
-_FLOW_METRIC = {"supps": "supplements", "compounds": "peptides"}
+# Generic metric name for the optional compounds module (protocol-driven, not a hardcoded substance).
+COMPOUND_METRIC = "compounds"
+
+_FLOW_METRIC = {"supps": "supplements", "compounds": COMPOUND_METRIC}
 
 
 def _morning_supplement_names(store) -> list[str]:
@@ -63,29 +66,31 @@ def _on_cycle_compound_names(store) -> list[str]:
     return names
 
 
-def _write_log(repos, metric: str, value: float, notes: str = "") -> None:
-    repos.logs.write(metric=metric, value=value, log_date=date.today().isoformat(), notes=notes)
+def _write_log(repos, store, metric: str, value: float, notes: str = "") -> None:
+    # Stamp the user's calendar day, not Lambda's UTC day (see apex/domain/dates.py)
+    log_date = protocol_today(store.load()).isoformat()
+    repos.logs.write(metric=metric, value=value, log_date=log_date, notes=notes)
 
 
 def _handle_supps_all(repos, store) -> None:
     names = _morning_supplement_names(store)
-    _write_log(repos, "supplements", 1, notes=", ".join(names))
+    _write_log(repos, store, "supplements", 1, notes=", ".join(names))
     send(f"✅ Supplements logged — all {len(names)} taken.")
 
 
-def _handle_supps_none(repos) -> None:
-    _write_log(repos, "supplements", 0, notes="none taken")
+def _handle_supps_none(repos, store) -> None:
+    _write_log(repos, store, "supplements", 0, notes="none taken")
     send("Logged — no supplements taken. Tomorrow's a new day.")
 
 
 def _handle_compounds_all(repos, store) -> None:
     names = _on_cycle_compound_names(store)
-    _write_log(repos, "peptides", 1, notes=", ".join(names))
+    _write_log(repos, store, COMPOUND_METRIC, 1, notes=", ".join(names))
     send(f"✅ Injections logged — all {len(names)} done.")
 
 
-def _handle_compounds_none(repos) -> None:
-    _write_log(repos, "peptides", 0, notes="none taken")
+def _handle_compounds_none(repos, store) -> None:
+    _write_log(repos, store, COMPOUND_METRIC, 0, notes="none taken")
     send("Logged — no injections today.")
 
 
@@ -132,7 +137,7 @@ def _handle_toggle(data: str, message_id: int, repos) -> None:
     edit_message(message_id, prompt, builder(selected, all_names))
 
 
-def _handle_partial_done(repos) -> None:
+def _handle_partial_done(repos, store) -> None:
     state, ctx = repos.users.get_state()
     if state != "awaiting_partial_picks":
         logger.warning("Partial done received outside partial-pick flow")
@@ -141,6 +146,6 @@ def _handle_partial_done(repos) -> None:
     all_names = ctx.get("all_names", [])
     metric = _FLOW_METRIC.get(ctx.get("flow", "supps"), "supplements")
     value = round(len(selected) / len(all_names), 2) if all_names else 0
-    _write_log(repos, metric, value, notes=", ".join(selected) or "none")
+    _write_log(repos, store, metric, value, notes=", ".join(selected) or "none")
     repos.users.clear_state()
     send(f"✅ Logged {len(selected)}/{len(all_names)}: {', '.join(selected) or 'none'}.")

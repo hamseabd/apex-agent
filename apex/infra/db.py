@@ -63,14 +63,14 @@ class LogRepository:
         )
         return [_decode(i) for i in resp.get("Items", [])]
 
-    def get_range(self, metric: str, days: int = 7) -> list[dict]:
-        today = date.today()
-        start = (today - timedelta(days=days - 1)).isoformat()
+    def get_range(self, metric: str, days: int = 7, today: str | None = None) -> list[dict]:
+        end = date.fromisoformat(today) if today else date.today()
+        start = (end - timedelta(days=days - 1)).isoformat()
         resp = self._table.query(
             IndexName="GSI1",
             KeyConditionExpression=(
                 Key("GSI1PK").eq(f"U#{self._user_id}#{metric}") &
-                Key("GSI1SK").gte(start)
+                Key("GSI1SK").between(start, end.isoformat())
             ),
             ScanIndexForward=False,
         )

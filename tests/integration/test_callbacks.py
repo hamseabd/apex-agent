@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from unittest.mock import patch
 
+from apex.domain.dates import local_today
 from apex.domain.models import Protocol
 
 
@@ -69,7 +70,7 @@ def test_supps_all_writes_log(aws_env):
          patch("apex.handlers.callback.answer_callback"):
         handle_callback(_cq("supps:all"), repos=repos, store=store)
 
-    logs = repos.logs.get_day(date.today().isoformat())
+    logs = repos.logs.get_day(local_today("America/New_York").isoformat())
     assert len(logs) == 1
     assert logs[0]["metric"] == "supplements"
     assert logs[0]["value"] == 1
@@ -84,7 +85,7 @@ def test_supps_none_writes_zero(aws_env):
          patch("apex.handlers.callback.answer_callback"):
         handle_callback(_cq("supps:none"), repos=repos, store=store)
 
-    logs = repos.logs.get_day(date.today().isoformat())
+    logs = repos.logs.get_day(local_today("America/New_York").isoformat())
     assert logs[0]["metric"] == "supplements"
     assert logs[0]["value"] == 0
 
@@ -97,9 +98,9 @@ def test_compounds_all_writes_log(aws_env):
          patch("apex.handlers.callback.answer_callback"):
         handle_callback(_cq("compounds:all"), repos=repos, store=store)
 
-    logs = repos.logs.get_day(date.today().isoformat())
+    logs = repos.logs.get_day(local_today("America/New_York").isoformat())
     assert len(logs) == 1
-    assert logs[0]["metric"] == "peptides"
+    assert logs[0]["metric"] == "compounds"
     assert logs[0]["value"] == 1
     # Only the on-cycle compound counts
     assert "BPC-157" in logs[0].get("notes", "")
@@ -161,7 +162,7 @@ def test_supps_partial_done_writes_fraction_and_clears_state(aws_env):
          patch("apex.handlers.callback.answer_callback"):
         handle_callback(_cq("supps:partial:done"), repos=repos, store=store)
 
-    logs = repos.logs.get_day(date.today().isoformat())
+    logs = repos.logs.get_day(local_today("America/New_York").isoformat())
     assert logs[0]["metric"] == "supplements"
     assert logs[0]["value"] == 0.5
     assert "Creatine" in logs[0].get("notes", "")

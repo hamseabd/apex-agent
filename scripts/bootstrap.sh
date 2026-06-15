@@ -42,7 +42,21 @@ BOT_TOKEN=$(aws ssm get-parameter \
   --query "Parameter.Value" \
   --output text \
   --region "$AWS_REGION")
-curl -s "https://api.telegram.org/bot$BOT_TOKEN/setWebhook?url=$WEBHOOK_URL" | python3 -m json.tool
+# Optional webhook secret — created by store_secrets.sh. When present, Telegram
+# sends it as X-Telegram-Bot-Api-Secret-Token and the Lambda rejects mismatches
+# (requires TELEGRAM_WEBHOOK_SECRET in the Lambda environment).
+WEBHOOK_SECRET=$(aws ssm get-parameter \
+  --name "/apex/telegram_webhook_secret" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text \
+  --region "$AWS_REGION" 2>/dev/null || true)
+
+SECRET_PARAM=""
+if [[ -n "$WEBHOOK_SECRET" ]]; then
+  SECRET_PARAM="&secret_token=$WEBHOOK_SECRET"
+fi
+curl -s "https://api.telegram.org/bot$BOT_TOKEN/setWebhook?url=$WEBHOOK_URL$SECRET_PARAM" | python3 -m json.tool
 
 echo ""
 echo "Apex deployed!"

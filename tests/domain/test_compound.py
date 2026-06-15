@@ -124,6 +124,15 @@ def test_matches_compound_name_partial_prefix():
     assert not matches_compound_name("b", "BPC-157")  # too short to trust
 
 
+def test_matches_compound_name_rejects_non_prefix_substring():
+    from apex.domain.compound import matches_compound_name
+    # CODE_REVIEW.md L9: "the" is a 3+ char substring of "Theanine" but not a
+    # prefix — "the arrived" must not activate it
+    assert not matches_compound_name("the", "Theanine")
+    assert not matches_compound_name("ani", "Theanine")
+    assert matches_compound_name("thea", "Theanine")
+
+
 def test_matches_compound_name_rejects_short_name_inside_words():
     from apex.domain.compound import matches_compound_name
     # "T" appears inside "the package" but not as a word — must not match

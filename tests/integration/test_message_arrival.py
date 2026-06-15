@@ -1,6 +1,6 @@
-from datetime import date
 from unittest.mock import MagicMock, patch
 
+from apex.domain.dates import local_today
 from apex.domain.models import Protocol
 
 
@@ -73,7 +73,7 @@ def test_arrival_activates_compound_and_sends(s3_bucket):
         handle(text="BPC-157 arrived", agent=None, repos=_idle_repos(), store=store)
 
     saved = ProtocolStore(bucket="apex-test-bucket").load()
-    assert saved.compounds[0].start_date == date.today().isoformat()
+    assert saved.compounds[0].start_date == local_today("America/New_York").isoformat()
     assert saved.compounds[1].start_date is None
     mock_send.assert_called_once()
     msg = mock_send.call_args[0][0]
@@ -89,10 +89,10 @@ def test_arrival_all_keyword_activates_everything(s3_bucket):
     store.save(_protocol(_compounds()))
 
     with patch("apex.infra.telegram.send") as mock_send:
-        handle(text="peptides arrived", agent=None, repos=_idle_repos(), store=store)
+        handle(text="all arrived", agent=None, repos=_idle_repos(), store=store)
 
     saved = ProtocolStore(bucket="apex-test-bucket").load()
-    assert all(c.start_date == date.today().isoformat() for c in saved.compounds)
+    assert all(c.start_date == local_today("America/New_York").isoformat() for c in saved.compounds)
     msg = mock_send.call_args[0][0]
     assert "BPC-157" in msg
     assert "TB-500" in msg

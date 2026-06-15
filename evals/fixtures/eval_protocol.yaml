@@ -1,0 +1,59 @@
+# evals/fixtures/eval_protocol.yaml
+#
+# FROZEN eval protocol. Pinned per EVALS.md §4 rule 4 — changing this file
+# invalidates score comparability, so bump eval_dataset_version in MANIFEST.yaml
+# whenever it changes. Five metrics + one compound, deliberately covering a
+# numeric-with-target (sleep/protein/water), a no-target numeric (weight), a
+# scale (energy), and the optional compounds module.
+
+version: "2"
+
+profile:
+  name: "Eval User"
+  goal: "Recomp — lose fat, hold muscle"
+  timezone: "America/New_York"
+  start_date: "2026-01-01"
+
+tracking:
+  metrics:
+    - name: sleep
+      type: numeric
+      unit: hours
+      daily_target: 8
+    - name: protein
+      type: numeric
+      unit: grams
+      daily_target: 180
+    - name: water
+      type: numeric
+      unit: oz
+      daily_target: 100
+    - name: weight
+      type: numeric
+      unit: lbs
+    - name: energy
+      type: scale
+      min: 1
+      max: 10
+
+supplements:
+  morning:
+    - { name: "Creatine", dose: "5g" }
+  evening:
+    - { name: "Magnesium Glycinate", dose: "400mg" }
+
+schedule:
+  morning_checkin: "07:00"
+  reminders:
+    - { time: "15:00", job: "water_reminder" }
+
+compounds:
+  - name: "BPC-157"
+    cycle:
+      on_weeks: 8
+      off_weeks: 4
+    dosing:
+      am: "250mcg"
+      pm: "250mcg"
+      days: "daily"
+    start_date: "2026-06-01"

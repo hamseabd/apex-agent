@@ -44,3 +44,10 @@ docs/
 
 # User protocol — generated via /setup, lives on S3
 apex.yaml
+
+# Eval run outputs — JSONL is per-run noise; HISTORY.md is committed
+evals/results/*.jsonl
+
+# Coverage artifacts
+.coverage
+htmlcov/

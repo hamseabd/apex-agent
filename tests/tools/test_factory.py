@@ -1,5 +1,7 @@
-from apex.domain.models import Protocol
+from datetime import date
 from unittest.mock import MagicMock, patch
+
+from apex.domain.models import Protocol
 
 
 def _make_protocol(metric_names: list[str]) -> Protocol:
@@ -59,7 +61,7 @@ def test_log_tool_writes_to_repo():
     tools = build_tools(protocol, repos)
 
     log_sleep = next(t for t in tools if t.__name__ == "log_sleep")
-    with patch("apex.tools.factory._today", return_value="2026-05-19"):
+    with patch("apex.tools.factory.local_today", return_value=date(2026, 5, 19)):
         result = log_sleep(value=7.5)
 
     repos.logs.write.assert_called_once_with(
@@ -78,9 +80,10 @@ def test_read_tool_queries_repo():
     tools = build_tools(protocol, repos)
 
     get_sleep = next(t for t in tools if t.__name__ == "get_sleep_logs")
-    result = get_sleep(days=7)
+    with patch("apex.tools.factory.local_today", return_value=date(2026, 5, 19)):
+        result = get_sleep(days=7)
 
-    repos.logs.get_range.assert_called_once_with(metric="sleep", days=7)
+    repos.logs.get_range.assert_called_once_with(metric="sleep", days=7, today="2026-05-19")
     assert "7.5" in result
 
 
@@ -95,7 +98,7 @@ def test_metric_with_unit_shows_unit_in_confirmation():
     })
     tools = build_tools(protocol, repos)
     log_sleep = next(t for t in tools if t.__name__ == "log_sleep")
-    with patch("apex.tools.factory._today", return_value="2026-05-19"):
+    with patch("apex.tools.factory.local_today", return_value=date(2026, 5, 19)):
         result = log_sleep(value=7.5)
     assert "hours" in result
     assert "8" in result  # target shown

@@ -101,6 +101,11 @@ pip install -e ".[dev]"
 .venv/bin/pytest tests/integration/ -v   # moto-backed DynamoDB/S3 tests
 ```
 
+Beyond the deterministic suite, `evals/` holds a behavioral eval harness that runs the **real**
+agent (live Bedrock) against mocked AWS and grades what actually persisted to the database —
+22 golden cases covering tool selection, multi-intent messages, false-log rate, protocol
+self-edits, and safety. Strategy and thresholds: [EVALS.md](EVALS.md).
+
 ## Project structure
 
 ```
@@ -126,6 +131,7 @@ tests/              # domain (pure) / tools / integration (moto)
 | 2 | Proactive scheduling — hourly EventBridge tick, protocol-driven reminders, `update_protocol` tool |
 | 3 | Compounds — cycle tracking, intro dosing, `[name] arrived` activation |
 | 4 | Inline keyboards — one-tap logging, formatted responses |
+| 5 | Hardening — full code review with regression tests ([CODE_REVIEW.md](CODE_REVIEW.md)), behavioral eval suite ([EVALS.md](EVALS.md)) |
 
 ## Teardown
 

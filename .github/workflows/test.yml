@@ -30,4 +30,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: "testing"
           CONFIG_BUCKET: "apex-config-test"
           TABLE_NAME: "apex-test"
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short --cov=apex --cov-fail-under=80

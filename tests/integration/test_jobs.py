@@ -66,13 +66,30 @@ def test_run_reminders_dispatches_matching_hour(s3_bucket):
     assert "💧" in mock_send.call_args[0][0]
 
 
+def test_run_reminders_skips_non_reminder_safe_jobs(s3_bucket):
+    # CODE_REVIEW.md H4: a protocol reminder must not be able to invoke heavy
+    # registry jobs like weekly_summary at arbitrary hours
+    from apex.infra.storage import ProtocolStore
+    protocol = _sample_protocol()
+    protocol.schedule.reminders[0].job = "weekly_summary"
+    ProtocolStore(bucket="apex-test-bucket").save(protocol)
+
+    with patch("apex.scheduler.jobs.send") as mock_send, \
+         patch("apex.scheduler.jobs._current_utc_hour", return_value="10:"):
+        from apex.scheduler.jobs import run_reminders
+        run_reminders()
+
+    mock_send.assert_not_called()
+
+
 def _compound_protocol(compounds: list[dict]) -> Protocol:
     return Protocol(**{**_sample_protocol().model_dump(), "compounds": compounds})
 
 
 def _started(days_ago: int) -> str:
-    from datetime import date, timedelta
-    return (date.today() - timedelta(days=days_ago)).isoformat()
+    from datetime import timedelta
+    from apex.domain.dates import local_today
+    return (local_today("America/New_York") - timedelta(days=days_ago)).isoformat()
 
 
 def test_morning_checkin_sends_supplement_keyboard(s3_bucket):

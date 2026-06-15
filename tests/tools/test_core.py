@@ -79,7 +79,7 @@ def test_get_today_status_groups_by_category(s3_bucket):
     repos.logs.get_day.return_value = [
         {"metric": "sleep", "value": 7.5},
         {"metric": "protein", "value": 150},
-        {"metric": "peptides", "value": 1},  # not in tracking — falls under Other
+        {"metric": "compounds", "value": 1},  # not in tracking — falls under Other
     ]
 
     tools = build_core_tools(repos=repos, store=store)

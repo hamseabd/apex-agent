@@ -1,4 +1,6 @@
 from __future__ import annotations
+from apex.domain.compound import CompoundCycle
+from apex.domain.dates import protocol_today
 from apex.infra.telemetry import logger
 from apex.infra.telegram import send
 
@@ -38,10 +40,13 @@ def run_reminders() -> None:
         return
     current_hour = _current_utc_hour()
     for reminder in protocol.schedule.reminders:
-        if reminder.time.startswith(current_hour):
-            fn = _REGISTRY.get(reminder.job)
+        # zfill normalizes "9:00" → "09:00" so non-padded times still match
+        if reminder.time.strip().zfill(5).startswith(current_hour):
+            fn = _REMINDER_SAFE_JOBS.get(reminder.job)
             if fn:
                 fn()
+            else:
+                logger.warning(f"Reminder job not reminder-safe, skipping: {reminder.job}")
 
 
 def water_reminder() -> None:
@@ -61,12 +66,10 @@ def bedtime_prompt() -> None:
 
 def morning_injection_reminder() -> None:
     """AM dose reminder for compounds with am dosing."""
-    from datetime import date
-    from apex.domain.compound import CompoundCycle
     protocol = _load_protocol_safe()
     if not protocol or not protocol.compounds:
         return
-    today = date.today()
+    today = protocol_today(protocol)
     lines = []
     for entry in protocol.compounds:
         c = CompoundCycle.from_protocol(entry.model_dump())
@@ -86,12 +89,10 @@ def morning_injection_reminder() -> None:
 
 def injection_reminder() -> None:
     """PM dose reminder with dose escalation alerts."""
-    from datetime import date
-    from apex.domain.compound import CompoundCycle
     protocol = _load_protocol_safe()
     if not protocol or not protocol.compounds:
         return
-    today = date.today()
+    today = protocol_today(protocol)
     lines = []
     alerts = []
     for entry in protocol.compounds:
@@ -148,13 +149,17 @@ def weekly_summary() -> None:
     if not protocol:
         return
     repos = Repositories()
+    today = protocol_today(protocol).isoformat()
     lines = ["📊 <b>Week in review</b>\n"]
     for metric in protocol.tracking.metrics:
-        logs = repos.logs.get_range(metric=metric.name, days=7)
+        logs = repos.logs.get_range(metric=metric.name, days=7, today=today)
         if not logs:
             lines.append(f"• {metric.name}: no data this week")
             continue
-        values = [l["value"] for l in logs]
+        values = [l["value"] for l in logs if isinstance(l["value"], (int, float))]
+        if not values:
+            lines.append(f"• {metric.name}: {len(logs)}/7 days logged")
+            continue
         avg = sum(values) / len(values)
         target_str = f" / {metric.daily_target}{metric.unit_str}" if metric.daily_target else ""
         lines.append(
@@ -171,6 +176,19 @@ _REGISTRY = {
     "bedtime_prompt": bedtime_prompt,
     "missed_day_check": missed_day_check,
     "weekly_summary": weekly_summary,
+}
+
+# Subset of _REGISTRY safe to fire from a protocol reminder (excludes weekly_summary
+# and missed_day_check — those run only from their dedicated EventBridge rules).
+_REMINDER_SAFE_JOBS = {
+    k: _REGISTRY[k]
+    for k in (
+        "morning_checkin",
+        "morning_injection_reminder",
+        "injection_reminder",
+        "water_reminder",
+        "bedtime_prompt",
+    )
 }
 
 

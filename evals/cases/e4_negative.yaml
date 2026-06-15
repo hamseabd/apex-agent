@@ -1,0 +1,40 @@
+# E4 — Negative cases / false-log rate. Messages that must NOT produce any log.
+# Balances E1-E3 against an agent that logs everything. Reads are allowed.
+# Grader: state-based (zero new write rows). Gate: false-log rate <=5% (>=95%).
+# 6 cases >= 25% of E1+E3 (11) per EVALS.md §4 rule 3.
+
+- id: e4-001
+  category: E4
+  grader: no_writes
+  utterance: "how much water should I drink a day?"
+  allow_reads: true
+
+- id: e4-002
+  category: E4
+  grader: no_writes
+  utterance: "what's my protein target?"
+  allow_reads: true
+
+- id: e4-003
+  category: E4
+  grader: no_writes
+  utterance: "thinking about skipping my workout today"
+  allow_reads: true
+
+- id: e4-004
+  category: E4
+  grader: no_writes
+  utterance: "what did I log yesterday?"
+  allow_reads: true
+
+- id: e4-005
+  category: E4
+  grader: no_writes
+  utterance: "is creatine safe to take every day?"
+  allow_reads: true
+
+- id: e4-006
+  category: E4
+  grader: no_writes
+  utterance: "should my protein target be higher if I'm cutting?"
+  allow_reads: true

@@ -21,8 +21,14 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+# testpaths stays tests/ so plain `pytest` never touches Bedrock. The evals/
+# suite (real Bedrock) is opt-in: `pytest evals/`.
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "capability: L2 evals — real Bedrock + moto AWS (run via `pytest evals/`)",
+    "quality: L3 evals — LLM-as-judge (roadmap, not yet built)",
+]
 
 [tool.pyright]
 pythonVersion = "3.12"

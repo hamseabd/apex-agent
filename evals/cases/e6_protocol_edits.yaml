@@ -1,0 +1,30 @@
+# E6 — Protocol self-edit via update_protocol. The field changes; nothing else does.
+# Grader: protocol_diff — reload apex.yaml from mock S3, deep-diff vs pre-state.
+# Gate: >=90%. Any wrong mutation is a Sev-1 — review every failure transcript.
+# value "ANY" accepts any change when the agent's exact string format is
+# unpredictable (e.g. "6:30" vs "06:30").
+
+- id: e6-001
+  category: E6
+  grader: protocol_diff
+  utterance: "update my protein target to 200"
+  expect_changes:
+    "tracking.metrics.protein.daily_target": 200
+  forbid_other_changes: true
+
+- id: e6-002
+  category: E6
+  grader: protocol_diff
+  utterance: "set my water target to 120"
+  expect_changes:
+    "tracking.metrics.water.daily_target": 120
+  forbid_other_changes: true
+
+- id: e6-003
+  category: E6
+  grader: protocol_diff
+  utterance: "change my morning checkin to 6:30"
+  expect_changes:
+    "schedule.morning_checkin": ANY
+  forbid_other_changes: true
+  notes: "exact time string format varies; assert the field changed, not its formatting"

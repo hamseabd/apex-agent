@@ -1,9 +1,9 @@
 from __future__ import annotations
-from datetime import date
 from typing import Any
 
 from strands import tool
 
+from apex.domain.dates import local_today
 from apex.infra.db import Repositories
 from apex.infra.storage import ProtocolStore
 from apex.infra.telemetry import logger
@@ -23,12 +23,12 @@ def _format_log_line(log: dict, metric) -> str:
     return f"• {name}: {bar} {value}/{target_str}{metric.unit_str} ({pct:.0%})"
 
 
-def build_core_tools(repos: Repositories, store: ProtocolStore) -> list:
-    """Return core tool functions closed over repos and store."""
+def build_core_tools(repos: Repositories, store: ProtocolStore, tz_name: str | None = None) -> list:
+    """Return core tool functions closed over repos, store, and the user's timezone."""
 
     def get_today_status() -> str:
         """Get a summary of everything logged today, with progress toward daily targets."""
-        today = date.today().isoformat()
+        today = local_today(tz_name).isoformat()
         logs = repos.logs.get_day(today)
         if not logs:
             return "Nothing logged yet today."
@@ -91,7 +91,9 @@ def build_core_tools(repos: Repositories, store: ProtocolStore) -> list:
             return f"Error: field '{final_key}' not found."
         typed_key: Any = int(final_key) if isinstance(current, list) else final_key
         try:
-            if isinstance(existing, int):
+            if isinstance(existing, bool):
+                current[typed_key] = value.strip().lower() in ("true", "1", "yes", "on")
+            elif isinstance(existing, int):
                 current[typed_key] = int(value)
             elif isinstance(existing, float):
                 current[typed_key] = float(value)
