@@ -28,6 +28,20 @@ _BUCKET = "apex-eval-bucket"
 _TABLE = "apex-eval"
 _USER_ID = "999"
 
+# moto.mock_aws() patches *every* botocore client by default, which would
+# intercept the agent's Bedrock call and raise NotImplementedError (moto has no
+# converse_stream). We want DynamoDB/S3 mocked but Bedrock REAL, so we pass
+# moto a config that:
+#   - passes `bedrockruntime` through to the real endpoint (note: moto's backend
+#     key is `bedrockruntime`, no hyphen — it matches the bedrock-runtime URL), and
+#   - disables credential mocking so the passthrough request uses real AWS creds.
+_MOTO_CONFIG = {
+    "core": {
+        "mock_credentials": False,
+        "passthrough": {"services": ["bedrockruntime"]},
+    }
+}
+
 
 # --------------------------------------------------------------------------- #
 # Mock AWS                                                                     #
@@ -94,7 +108,7 @@ def run_turn(
 
     yaml_text = protocol_yaml or EVAL_PROTOCOL.read_text()
 
-    with moto.mock_aws():
+    with moto.mock_aws(config=_MOTO_CONFIG):
         resource = boto3.resource("dynamodb", region_name="us-east-1")
         table = _create_table(resource)
         s3 = boto3.client("s3", region_name="us-east-1")
@@ -238,8 +252,13 @@ def _grade_protocol_diff(case: dict, result: TurnResult) -> tuple[bool, str]:
         if path not in changed:
             return False, f"expected '{path}' to change, but it did not ({sorted(changed)})"
         got = after.get(path)
-        if want != "ANY" and str(got) != str(want):
-            return False, f"'{path}'={got!r}, expected {want!r}"
+        if want != "ANY":
+            try:
+                if float(got) != float(want):
+                    return False, f"'{path}'={got!r}, expected {want!r}"
+            except (TypeError, ValueError):
+                if str(got) != str(want):
+                    return False, f"'{path}'={got!r}, expected {want!r}"
 
     if case.get("forbid_other_changes", True):
         unexpected = set(changed) - set(expected)

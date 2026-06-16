@@ -21,7 +21,9 @@ os.environ.setdefault("AWS_REGION", "us-east-1")
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
 os.environ.setdefault("CONFIG_BUCKET", "apex-eval-bucket")
 os.environ.setdefault("TABLE_NAME", "apex-eval")
-os.environ.setdefault("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0")
+# claude-sonnet-4 (20250514) is now provider-marked Legacy and access-denied on
+# Bedrock; us.anthropic.claude-sonnet-4-6 is the current active Sonnet profile.
+os.environ.setdefault("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
 
 
 def pytest_addoption(parser):
