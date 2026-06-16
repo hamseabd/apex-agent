@@ -6,12 +6,15 @@
 > writes, and that the /setup interview extracts what the user actually said.
 
 > **Build status (v1).** The harness, deterministic state-graders, and the 22-case golden dataset
-> (E1/E3/E4/E6/E9) are **built and collectable** under `evals/` — the graders are unit-verified
+> (E1/E3/E4/E6/E9) are **built** under `evals/` — the graders are unit-verified
 > ([tests/test_eval_graders.py](tests/test_eval_graders.py), 13 pure-function tests run in the main
-> suite) and `pytest evals/ --collect-only` lists all 22 cases. What hasn't happened yet is the first *scored*
-> run: that calls real Bedrock, so it needs AWS credentials (`APEX_EVAL_LIVE=1`) and is the
-> immediate next step. The LLM-as-judge layer (E8) remains roadmap. Throughout this doc, ✅ marks a
-> case that exists in the repo, **not** a recorded pass rate — no scorecard exists until a live run.
+> suite) and `pytest evals/ --collect-only` lists all 22 cases. The **first scored run landed
+> 2026-06-16** against real Bedrock (`APEX_EVAL_LIVE=1`); the scorecard lives in
+> [results/HISTORY.md](evals/results/HISTORY.md). That first run also surfaced a grader
+> false-negative — a string-vs-numeric compare on protocol targets (`"200.0" != "200"`), since
+> fixed — a reminder that an early eval "failure" is a hypothesis to check, not a verdict. The
+> LLM-as-judge layer (E8) remains roadmap. Throughout this doc, ✅ marks a case that **exists in the
+> repo**; per-category pass rates live only in HISTORY.md, never inline here.
 
 ---
 
@@ -311,6 +314,26 @@ discipline not to — and it's exactly why both E1 *and* E4 gate releases.
 4. **Version everything:** `eval_dataset_version` in a manifest, model ID + git SHA in every result row. Never compare scores across dataset versions.
 5. **Promote tracked → gated:** new categories (E8 tone, E9 value-sanity) run report-only for 2 weeks; once stable and judge-calibrated, they become gates.
 6. **Prune with care:** retire a case only when the behavior it guards is impossible (tool removed), not because it keeps failing.
+
+### Known limitations (v1)
+
+Stated plainly so the scorecard isn't read as more than it is:
+
+1. **Single frozen protocol.** Every case runs against one pinned `eval_protocol.yaml`
+   (`fixtures/eval_protocol.yaml`). Apex's headline is that tools are *generated per protocol* — but
+   the suite only exercises one generated surface. A 95% pass rate proves the agent handles *this*
+   protocol's tools, **not** that the generation generalizes. Proving that needs the same cases run
+   against 2–3 structurally different protocols (different metric sets, compounds on/off). That's the
+   highest-value next addition, tracked in EVALS_IMPLEMENTATION_PLAN.md.
+2. **Thresholds are reported, not yet CI-enforced as category gates.** The runner asserts each case
+   passes every trial (pass^k = 100% per case — stricter than the documented category thresholds);
+   the §3 gate percentages are computed in the report for human reading. Wiring the gates as a
+   build-failing step in `evals.yml` is roadmap.
+3. **Raw transcripts aren't committed.** `results/latest.jsonl` is gitignored; only the HISTORY.md
+   summary row is versioned. Reproducing a specific failure means re-running, not reading the repo.
+4. **Small samples → wide intervals.** At ~2–8 cases per category, the Wilson intervals are wide
+   (±8–10pts). v1 is sized to catch large effects (broken tool, false-log regressions), not to
+   adjudicate <5pt differences.
 
 ---
 
