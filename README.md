@@ -87,10 +87,26 @@ Every metric generates tools. Supplements drive the morning one-tap keyboard. Co
 | "slept 7.5 hours" | `log_sleep(7.5)` — confirmation with progress bar |
 | "ran 3 miles, drank 60oz" | Two tools fire in one turn |
 | "how's my protein this week?" | Pulls real logs, shows the trend |
+| "what does my creatine doc say about dosing?" | Grounded answer from your knowledge base, with a source citation (or an honest "no source") |
 | "BPC-157 arrived" | Cycle activated — start date set, reminders begin |
 | "update my protein target to 200" | Edits `apex.yaml` on S3, preserving comments |
 | Tap ✅ on the morning keyboard | All supplements logged in one tap |
 | `/setup` | AI-guided interview rebuilds your protocol |
+
+### Grounded knowledge base
+
+Drop markdown/text files under `knowledge/` in the Apex S3 bucket (operator-loaded, the same
+pattern as `apex.yaml` — the repo ships one example doc). Apex answers health/research questions
+using **only** those documents, cites the source filename, and says *"I don't have a grounded
+source for that"* when the corpus doesn't cover the question — rather than guessing from the model's
+weights. It's framed as informational, not medical advice.
+
+Under the hood this is **prompt-caching, not a vector database**: for a small personal corpus,
+[Anthropic's guidance](https://www.anthropic.com/news/contextual-retrieval) is to cache the whole
+corpus in the prompt rather than build a vector store — cheaper, no always-on infrastructure, and
+better answers (the model sees whole documents, not disconnected chunks). Vector RAG is a documented
+future upgrade for when a corpus outgrows caching. The feature is fully optional: no corpus → the
+tool simply doesn't appear.
 
 ## Running tests
 
