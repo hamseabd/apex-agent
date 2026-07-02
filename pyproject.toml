@@ -12,6 +12,12 @@ dependencies = [
     "ruamel.yaml>=0.18",
 ]
 
+[tool.setuptools.packages.find]
+# Only apex/ is the importable package. evals/, terraform/, etc. are
+# top-level dirs that would otherwise trip setuptools flat-layout
+# auto-discovery ("Multiple top-level packages discovered").
+include = ["apex*"]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
