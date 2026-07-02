@@ -4,6 +4,7 @@ from strands import tool
 
 from apex.domain.dates import local_today
 from apex.domain.models import Metric, Protocol
+from apex.infra.knowledge import KnowledgeStore
 from apex.tools.core import build_core_tools
 
 
@@ -63,4 +64,17 @@ def build_tools(protocol: Protocol, repos, store=None) -> list:
         from apex.tools.compound import build_compound_tools
         tools.extend(build_compound_tools(protocol.compounds, repos, store, tz_name))
 
+    if _knowledge_corpus_available():
+        from apex.tools.knowledge import build_knowledge_tools
+        tools.extend(build_knowledge_tools(KnowledgeStore()))
+
     return tools
+
+
+def _knowledge_corpus_available() -> bool:
+    """True iff a knowledge corpus exists in S3. Degrades to False (no KB tool)
+    if the store is unreachable — the bot still works, just without grounding."""
+    try:
+        return KnowledgeStore().exists()
+    except Exception:  # noqa: BLE001 — never let corpus lookup break agent build
+        return False
