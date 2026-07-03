@@ -32,7 +32,12 @@ TRUST=$(cat <<JSON
     "Action": "sts:AssumeRoleWithWebIdentity",
     "Condition": {
       "StringEquals": { "${OIDC_URL}:aud": "sts.amazonaws.com" },
-      "StringLike": { "${OIDC_URL}:sub": "repo:${GH_REPO}:*" }
+      "StringLike": {
+        "${OIDC_URL}:sub": [
+          "repo:${GH_REPO}:ref:refs/heads/main",
+          "repo:${GH_REPO}:environment:production"
+        ]
+      }
     }
   }]
 }
