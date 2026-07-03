@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -6,20 +6,33 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
+          cache: pip
       - name: Install dependencies
         run: pip install -e ".[dev]"
-
       - name: Run tests
         env:
           TELEGRAM_BOT_TOKEN: "123:test_token"
@@ -31,3 +44,17 @@ jobs:
           CONFIG_BUCKET: "apex-test-bucket"
           TABLE_NAME: "apex-test"
         run: pytest tests/ -v --tb=short --cov=apex --cov-fail-under=80
+
+  security:
+    runs-on: ubuntu-latest
+    # Warn-only: surfaces dependency CVEs in logs without blocking merges on
+    # transitive vulns we don't control (e.g. pyjwt/starlette pulled in by mcp).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pip-audit
