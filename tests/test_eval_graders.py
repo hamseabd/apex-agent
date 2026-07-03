@@ -5,6 +5,7 @@ moto. These tests are what make "the graders are unit-verified" true: a grader
 bug would silently corrupt every scored eval run, so the graders themselves
 get the cheapest layer that can express the check (EVALS.md §8).
 """
+
 from typing import Any
 
 from evals.harness import TurnResult, grade
@@ -136,9 +137,7 @@ def test_protocol_diff_unexpected_change_fails():
         "grader": "protocol_diff",
         "expect_changes": {"tracking.metrics.protein.daily_target": 200},
     }
-    result = _result(
-        protocol_before=_BEFORE, protocol_after=_after(target=200, name="Mallory")
-    )
+    result = _result(protocol_before=_BEFORE, protocol_after=_after(target=200, name="Mallory"))
     passed, reason = grade(case, result)
     assert not passed
     assert "profile.name" in reason

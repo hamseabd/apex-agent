@@ -7,6 +7,7 @@ Prints per-category pass rate with a 95% Wilson interval, pass^k for E1 (the
 reliability-critical core), and false-log rate for E4. Appends a one-line
 summary row to results/HISTORY.md.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,8 +39,10 @@ def summarize(rows: list[dict]) -> str:
     for r in rows:
         by_cat[r.get("category") or "?"].append(r)
 
-    lines = ["| Category | Cases×trials | Pass rate | 95% CI | Notes |",
-             "|----------|--------------|-----------|--------|-------|"]
+    lines = [
+        "| Category | Cases×trials | Pass rate | 95% CI | Notes |",
+        "|----------|--------------|-----------|--------|-------|",
+    ]
     for cat in sorted(by_cat):
         crows = by_cat[cat]
         n = len(crows)
@@ -56,13 +59,13 @@ def summarize(rows: list[dict]) -> str:
         if cat == "E4":
             false_logs = n - passes
             note = f"false-log rate: {false_logs}/{n} = {false_logs / n:.0%}" if n else ""
-        lines.append(
-            f"| {cat} | {n} | {passes / n:.0%} | [{lo:.0%}, {hi:.0%}] | {note} |"
-        )
+        lines.append(f"| {cat} | {n} | {passes / n:.0%} | [{lo:.0%}, {hi:.0%}] | {note} |")
 
     total = len(rows)
     tot_pass = sum(1 for r in rows if r["passed"])
-    lines.append(f"\n**Overall: {tot_pass}/{total} = {tot_pass / total:.0%}**" if total else "\n_No rows._")
+    lines.append(
+        f"\n**Overall: {tot_pass}/{total} = {tot_pass / total:.0%}**" if total else "\n_No rows._"
+    )
 
     fails = [r for r in rows if not r["passed"]]
     if fails:
@@ -84,7 +87,11 @@ def append_history(rows: list[dict]) -> None:
     hist = RESULTS_DIR / "HISTORY.md"
     line = f"| {date.today().isoformat()} | {sha} | {model} | {cats} |\n"
     if not hist.exists():
-        hist.write_text("# Eval run history\n\n| Date | Git SHA | Model | Per-category passes |\n|------|---------|-------|---------------------|\n")
+        hist.write_text(
+            "# Eval run history\n\n"
+            "| Date | Git SHA | Model | Per-category passes |\n"
+            "|------|---------|-------|---------------------|\n"
+        )
     with hist.open("a") as fh:
         fh.write(line)
 

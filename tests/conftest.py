@@ -1,7 +1,8 @@
 import os
+
 import boto3
-import pytest
 import moto
+import pytest
 
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123:test")
 os.environ.setdefault("TELEGRAM_CHAT_ID", "999")

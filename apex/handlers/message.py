@@ -5,8 +5,8 @@ from strands import Agent
 from apex.domain.compound import CompoundCycle, matches_compound_name
 from apex.domain.dates import protocol_today
 from apex.infra.db import Repositories
-from apex.infra.telemetry import logger, tracer
 from apex.infra.telegram import send
+from apex.infra.telemetry import logger, tracer
 
 
 @tracer.capture_method
@@ -16,6 +16,7 @@ def handle(text: str, agent: Agent | None, repos: Repositories, store=None, prot
 
     if state == "setup_in_progress":
         from apex.handlers.setup import handle_setup_message
+
         handle_setup_message(
             text=text,
             step=context.get("step", "goal"),
@@ -26,6 +27,7 @@ def handle(text: str, agent: Agent | None, repos: Repositories, store=None, prot
 
     if text.strip() == "/setup":
         from apex.handlers.setup import handle_setup_start
+
         handle_setup_start(repos=repos)
         return
 
@@ -59,6 +61,7 @@ def _is_compound_arrival(text: str, protocol) -> bool:
 
 def _handle_compound_arrival(text: str, protocol, store) -> None:
     from apex.infra.telegram import send
+
     today = protocol_today(protocol)
     text_lower = text.lower().replace("arrived", "").strip()
     compound_list = list(protocol.compounds or [])

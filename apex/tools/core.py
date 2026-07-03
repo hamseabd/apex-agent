@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Any
 
 from strands import tool
@@ -39,11 +40,11 @@ def build_core_tools(repos: Repositories, store: ProtocolStore, tz_name: str | N
             metrics = {}
 
         grouped: dict[str, list[str]] = {}
-        for l in logs:
-            metric = metrics.get(l["metric"])
+        for log in logs:
+            metric = metrics.get(log["metric"])
             grouped.setdefault(
                 metric.category if metric and metric.category else "other", []
-            ).append(_format_log_line(l, metric))
+            ).append(_format_log_line(log, metric))
 
         if list(grouped) == ["other"]:
             return "Today so far:\n" + "\n".join(grouped["other"])
@@ -68,7 +69,8 @@ def build_core_tools(repos: Repositories, store: ProtocolStore, tz_name: str | N
     def update_protocol(field_path: str, value: str) -> str:
         """
         Update a field in the user's health protocol using dot notation.
-        field_path examples: 'profile.goal', 'schedule.morning_checkin', 'tracking.metrics.0.daily_target'
+        field_path examples: 'profile.goal', 'schedule.morning_checkin',
+        'tracking.metrics.0.daily_target'
         value is always passed as a string and cast to match the existing field type.
         """
         try:
@@ -85,7 +87,6 @@ def build_core_tools(repos: Repositories, store: ProtocolStore, tz_name: str | N
                 return f"Error: '{field_path}' not found in protocol."
         final_key = keys[-1]
         try:
-            existing_container = current
             existing = current[int(final_key)] if isinstance(current, list) else current[final_key]
         except (KeyError, IndexError, TypeError):
             return f"Error: field '{final_key}' not found."
@@ -103,6 +104,7 @@ def build_core_tools(repos: Repositories, store: ProtocolStore, tz_name: str | N
             current[typed_key] = value
         try:
             from apex.domain.models import Protocol as ProtocolModel
+
             store.save(ProtocolModel(**data))
         except Exception as e:
             return f"Error: could not save protocol — {e}"

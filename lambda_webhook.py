@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 import json
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
-from apex.infra.telemetry import logger, tracer, metrics
 from apex.infra.telegram import send
+from apex.infra.telemetry import logger, metrics, tracer
 from apex.settings import get_settings
 
 
@@ -30,6 +31,7 @@ def handler(event: dict, context: LambdaContext) -> dict:
                 from apex.handlers.callback import handle_callback
                 from apex.infra.db import Repositories
                 from apex.infra.storage import ProtocolStore
+
                 handle_callback(cq, repos=Repositories(), store=ProtocolStore())
             return {"statusCode": 200}
 
@@ -47,6 +49,7 @@ def handler(event: dict, context: LambdaContext) -> dict:
 
         # Redirect to /setup if protocol not yet created
         from apex.infra.storage import ProtocolStore
+
         store = ProtocolStore()
         protocol_exists = store.exists()
 
@@ -55,6 +58,7 @@ def handler(event: dict, context: LambdaContext) -> dict:
             return {"statusCode": 200}
 
         from apex.infra.db import Repositories
+
         repos = Repositories()
 
         agent = None
@@ -63,9 +67,11 @@ def handler(event: dict, context: LambdaContext) -> dict:
         if protocol_exists and text != "/setup" and state != "setup_in_progress":
             protocol = store.load()
             from apex.agent import build_agent
+
             agent = build_agent(protocol, repos, store)
 
         from apex.handlers.message import handle
+
         handle(text=text, agent=agent, repos=repos, store=store, protocol=protocol)
 
     except Exception:

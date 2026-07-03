@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 import logging
 import urllib.error
@@ -27,9 +28,7 @@ def _post(method: str, payload: dict) -> None:
     s = get_settings()
     url = f"https://api.telegram.org/bot{s.telegram_bot_token}/{method}"
     data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        url, data=data, headers={"Content-Type": "application/json"}
-    )
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     try:
         urllib.request.urlopen(req, timeout=10)
     except urllib.error.HTTPError as e:
@@ -59,12 +58,15 @@ def send(text: str, parse_mode: str = "HTML") -> None:
 def send_with_keyboard(text: str, reply_markup: dict, parse_mode: str = "HTML") -> None:
     """Send a message with an inline keyboard."""
     s = get_settings()
-    _post("sendMessage", {
-        "chat_id": s.telegram_chat_id,
-        "text": text,
-        "parse_mode": parse_mode,
-        "reply_markup": reply_markup,
-    })
+    _post(
+        "sendMessage",
+        {
+            "chat_id": s.telegram_chat_id,
+            "text": text,
+            "parse_mode": parse_mode,
+            "reply_markup": reply_markup,
+        },
+    )
 
 
 def edit_message(message_id: int, text: str, reply_markup: dict | None = None) -> None:

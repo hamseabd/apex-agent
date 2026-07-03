@@ -43,6 +43,8 @@ def build_agent(protocol: Protocol, repos: Repositories, store: ProtocolStore) -
     Called at Lambda cold start. Tool list is dynamic — derived entirely from protocol.
     """
     tools = build_tools(protocol, repos, store)
-    logger.info("Agent built", extra={"tool_count": len(tools), "tools": [t.__name__ for t in tools]})
+    logger.info(
+        "Agent built", extra={"tool_count": len(tools), "tools": [t.__name__ for t in tools]}
+    )
     model = BedrockModel(model_id=get_settings().bedrock_model_id)
     return Agent(system_prompt=_SYSTEM_PROMPT, tools=tools, model=model)

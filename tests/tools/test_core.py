@@ -3,17 +3,20 @@ from unittest.mock import MagicMock
 
 def _make_protocol():
     from apex.domain.models import Protocol
-    return Protocol(**{
-        "version": "2",
-        "profile": {
-            "name": "Alex",
-            "goal": "recomp",
-            "timezone": "America/New_York",
-            "start_date": "2026-06-01",
-        },
-        "tracking": {"metrics": [{"name": "sleep", "type": "numeric", "unit": "hours"}]},
-        "schedule": {"morning_checkin": "07:00", "reminders": []},
-    })
+
+    return Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "Alex",
+                "goal": "recomp",
+                "timezone": "America/New_York",
+                "start_date": "2026-06-01",
+            },
+            "tracking": {"metrics": [{"name": "sleep", "type": "numeric", "unit": "hours"}]},
+            "schedule": {"morning_checkin": "07:00", "reminders": []},
+        }
+    )
 
 
 def test_update_protocol_string_field(s3_bucket):
@@ -35,20 +38,37 @@ def test_update_protocol_string_field(s3_bucket):
 
 def _make_targeted_protocol():
     from apex.domain.models import Protocol
-    return Protocol(**{
-        "version": "2",
-        "profile": {
-            "name": "Alex",
-            "goal": "recomp",
-            "timezone": "America/New_York",
-            "start_date": "2026-06-01",
-        },
-        "tracking": {"metrics": [
-            {"name": "sleep", "type": "numeric", "unit": "hours", "daily_target": 8, "category": "recovery"},
-            {"name": "protein", "type": "numeric", "unit": "g", "daily_target": 180, "category": "nutrition"},
-        ]},
-        "schedule": {},
-    })
+
+    return Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "Alex",
+                "goal": "recomp",
+                "timezone": "America/New_York",
+                "start_date": "2026-06-01",
+            },
+            "tracking": {
+                "metrics": [
+                    {
+                        "name": "sleep",
+                        "type": "numeric",
+                        "unit": "hours",
+                        "daily_target": 8,
+                        "category": "recovery",
+                    },
+                    {
+                        "name": "protein",
+                        "type": "numeric",
+                        "unit": "g",
+                        "daily_target": 180,
+                        "category": "nutrition",
+                    },
+                ]
+            },
+            "schedule": {},
+        }
+    )
 
 
 def test_get_today_status_shows_progress_bars(s3_bucket):

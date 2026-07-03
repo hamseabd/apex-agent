@@ -11,10 +11,12 @@ from apex.infra.keyboards import (
 def test_inline_choice_shape():
     kb = inline_choice([("Yes", "yes:1"), ("No", "no:0")])
     assert kb == {
-        "inline_keyboard": [[
-            {"text": "Yes", "callback_data": "yes:1"},
-            {"text": "No", "callback_data": "no:0"},
-        ]]
+        "inline_keyboard": [
+            [
+                {"text": "Yes", "callback_data": "yes:1"},
+                {"text": "No", "callback_data": "no:0"},
+            ]
+        ]
     }
 
 

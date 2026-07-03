@@ -1,30 +1,34 @@
 """Regression tests for the 2026-06-11 code review fixes — one section per finding."""
+
 from __future__ import annotations
+
 import json
 import urllib.error
+from datetime import UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ── L1: log dates must use the user's timezone, not UTC ─────────────────────
 
 
 def test_local_today_uses_eastern_time():
-    from datetime import datetime, timezone
+    from datetime import datetime
     from zoneinfo import ZoneInfo
+
     from apex.domain.dates import local_today
 
     expected = datetime.now(ZoneInfo("America/New_York")).date()
     assert local_today() == expected
     # And it must differ from UTC during the evening rollover window
-    utc_date = datetime.now(timezone.utc).date()
+    utc_date = datetime.now(UTC).date()
     assert local_today("Pacific/Auckland") != local_today("America/New_York") or True  # smoke
     assert isinstance(utc_date, type(expected))
 
 
 def test_local_today_falls_back_on_bad_timezone():
     from apex.domain.dates import local_today
+
     assert local_today("Not/AZone") == local_today("America/New_York")
 
 
@@ -33,29 +37,38 @@ def test_log_tool_uses_protocol_timezone():
     from apex.tools.factory import build_tools
 
     repos = MagicMock()
-    protocol = Protocol(**{
-        "version": "2",
-        "profile": {"name": "A", "goal": "g", "timezone": "Pacific/Kiritimati", "start_date": "2026-01-01"},
-        "tracking": {"metrics": [{"name": "sleep"}]},
-        "schedule": {},
-    })
+    protocol = Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "A",
+                "goal": "g",
+                "timezone": "Pacific/Kiritimati",
+                "start_date": "2026-01-01",
+            },
+            "tracking": {"metrics": [{"name": "sleep"}]},
+            "schedule": {},
+        }
+    )
     tools = build_tools(protocol, repos)
     log_sleep = next(t for t in tools if t.__name__ == "log_sleep")
     log_sleep(value=7)
 
     from apex.domain.dates import local_today
+
     logged_date = repos.logs.write.call_args.kwargs["log_date"]
     assert logged_date == local_today("Pacific/Kiritimati").isoformat()
 
 
 def test_get_range_accepts_explicit_today(ddb_table):
     from apex.infra.db import LogRepository
+
     repo = LogRepository(table=ddb_table, user_id="999")
     repo.write(metric="sleep", value=7.0, log_date="2026-06-01")
     repo.write(metric="sleep", value=8.0, log_date="2026-06-08")
 
     logs = repo.get_range(metric="sleep", days=7, today="2026-06-07")
-    assert [l["value"] for l in logs] == [7.0]
+    assert [row["value"] for row in logs] == [7.0]
 
 
 # ── L2: weekly_summary must not crash on non-numeric values ──────────────────
@@ -63,22 +76,33 @@ def test_get_range_accepts_explicit_today(ddb_table):
 
 def test_weekly_summary_skips_non_numeric_values(s3_bucket, ddb_table):
     from apex.domain.models import Protocol
-    from apex.infra.storage import ProtocolStore
     from apex.infra.db import Repositories
+    from apex.infra.storage import ProtocolStore
 
-    ProtocolStore(bucket="apex-test-bucket").save(Protocol(**{
-        "version": "2",
-        "profile": {"name": "A", "goal": "g", "timezone": "America/New_York", "start_date": "2026-06-01"},
-        "tracking": {"metrics": [{"name": "mood", "type": "text"}]},
-        "schedule": {},
-    }))
+    ProtocolStore(bucket="apex-test-bucket").save(
+        Protocol(
+            **{
+                "version": "2",
+                "profile": {
+                    "name": "A",
+                    "goal": "g",
+                    "timezone": "America/New_York",
+                    "start_date": "2026-06-01",
+                },
+                "tracking": {"metrics": [{"name": "mood", "type": "text"}]},
+                "schedule": {},
+            }
+        )
+    )
     from apex.domain.dates import local_today
+
     Repositories(table=ddb_table, user_id="999").logs.write(
         metric="mood", value="great", log_date=local_today().isoformat()
     )
 
     with patch("apex.scheduler.jobs.send") as mock_send:
         from apex.scheduler.jobs import weekly_summary
+
         weekly_summary()
 
     msg = mock_send.call_args[0][0]
@@ -92,16 +116,31 @@ def test_run_reminders_matches_unpadded_hour(s3_bucket):
     from apex.domain.models import Protocol
     from apex.infra.storage import ProtocolStore
 
-    ProtocolStore(bucket="apex-test-bucket").save(Protocol(**{
-        "version": "2",
-        "profile": {"name": "A", "goal": "g", "timezone": "America/New_York", "start_date": "2026-06-01"},
-        "tracking": {"metrics": []},
-        "schedule": {"morning_checkin": "07:00", "reminders": [{"time": "9:00", "job": "water_reminder"}]},
-    }))
+    ProtocolStore(bucket="apex-test-bucket").save(
+        Protocol(
+            **{
+                "version": "2",
+                "profile": {
+                    "name": "A",
+                    "goal": "g",
+                    "timezone": "America/New_York",
+                    "start_date": "2026-06-01",
+                },
+                "tracking": {"metrics": []},
+                "schedule": {
+                    "morning_checkin": "07:00",
+                    "reminders": [{"time": "9:00", "job": "water_reminder"}],
+                },
+            }
+        )
+    )
 
-    with patch("apex.scheduler.jobs.send") as mock_send, \
-         patch("apex.scheduler.jobs._current_utc_hour", return_value="09:"):
+    with (
+        patch("apex.scheduler.jobs.send") as mock_send,
+        patch("apex.scheduler.jobs._current_utc_hour", return_value="09:"),
+    ):
         from apex.scheduler.jobs import run_reminders
+
         run_reminders()
 
     mock_send.assert_called_once()
@@ -157,11 +196,13 @@ def test_handle_setup_message_strips_unknown_extracted_keys(monkeypatch):
 
     monkeypatch.setattr(
         "apex.handlers.setup._ask_claude",
-        lambda *a, **kw: json.dumps({
-            "reply": "Got it.",
-            "extracted": {"goal": "lean out", "evil_key": "payload"},
-            "advance": True,
-        }),
+        lambda *a, **kw: json.dumps(
+            {
+                "reply": "Got it.",
+                "extracted": {"goal": "lean out", "evil_key": "payload"},
+                "advance": True,
+            }
+        ),
     )
     repos = MagicMock()
     monkeypatch.setattr("apex.handlers.setup.send", lambda t: None)
@@ -196,13 +237,17 @@ def _secret_event(token: str | None) -> dict:
     headers = {}
     if token is not None:
         headers["x-telegram-bot-api-secret-token"] = token
-    return {"headers": headers, "body": json.dumps({"message": {"chat": {"id": 999}, "text": "hi"}})}
+    return {
+        "headers": headers,
+        "body": json.dumps({"message": {"chat": {"id": 999}, "text": "hi"}}),
+    }
 
 
 @pytest.fixture
 def _webhook_secret_env(monkeypatch):
     monkeypatch.setenv("TELEGRAM_WEBHOOK_SECRET", "s3cret")
     from apex.settings import get_settings
+
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -210,20 +255,22 @@ def _webhook_secret_env(monkeypatch):
 
 def test_webhook_rejects_missing_secret(_webhook_secret_env):
     import lambda_webhook
+
     resp = lambda_webhook.handler(_secret_event(None), MagicMock())
     assert resp == {"statusCode": 403}
 
 
 def test_webhook_rejects_wrong_secret(_webhook_secret_env):
     import lambda_webhook
+
     resp = lambda_webhook.handler(_secret_event("wrong"), MagicMock())
     assert resp == {"statusCode": 403}
 
 
 def test_webhook_accepts_correct_secret(_webhook_secret_env):
     import lambda_webhook
-    with patch("apex.infra.storage.ProtocolStore") as mock_store_cls, \
-         patch("lambda_webhook.send"):
+
+    with patch("apex.infra.storage.ProtocolStore") as mock_store_cls, patch("lambda_webhook.send"):
         mock_store_cls.return_value.exists.return_value = False
         resp = lambda_webhook.handler(_secret_event("s3cret"), MagicMock())
     assert resp == {"statusCode": 200}
@@ -231,10 +278,11 @@ def test_webhook_accepts_correct_secret(_webhook_secret_env):
 
 def test_webhook_no_secret_configured_accepts_unsigned(monkeypatch):
     from apex.settings import get_settings
+
     get_settings.cache_clear()
     import lambda_webhook
-    with patch("apex.infra.storage.ProtocolStore") as mock_store_cls, \
-         patch("lambda_webhook.send"):
+
+    with patch("apex.infra.storage.ProtocolStore") as mock_store_cls, patch("lambda_webhook.send"):
         mock_store_cls.return_value.exists.return_value = False
         resp = lambda_webhook.handler(_secret_event(None), MagicMock())
     assert resp == {"statusCode": 200}
@@ -246,15 +294,22 @@ def test_webhook_no_secret_configured_accepts_unsigned(monkeypatch):
 
 def test_update_protocol_bool_cast():
     # Pure-logic check of the casting branch via a minimal store double
-    from apex.tools.core import build_core_tools
     from apex.domain.models import Protocol
+    from apex.tools.core import build_core_tools
 
-    protocol = Protocol(**{
-        "version": "2",
-        "profile": {"name": "A", "goal": "g", "timezone": "America/New_York", "start_date": "2026-06-01"},
-        "tracking": {"metrics": [{"name": "sleep", "daily_target": 8}]},
-        "schedule": {},
-    })
+    protocol = Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "A",
+                "goal": "g",
+                "timezone": "America/New_York",
+                "start_date": "2026-06-01",
+            },
+            "tracking": {"metrics": [{"name": "sleep", "daily_target": 8}]},
+            "schedule": {},
+        }
+    )
     store = MagicMock()
     store.load.return_value = protocol
     tools = build_core_tools(MagicMock(), store)

@@ -1,13 +1,17 @@
 from __future__ import annotations
+
+from datetime import UTC
+
 from apex.domain.compound import CompoundCycle
 from apex.domain.dates import protocol_today
-from apex.infra.telemetry import logger
 from apex.infra.telegram import send
+from apex.infra.telemetry import logger
 
 
 def _load_protocol_safe():
     try:
         from apex.infra.storage import ProtocolStore
+
         store = ProtocolStore()
         return store.load() if store.exists() else None
     except Exception:
@@ -15,8 +19,9 @@ def _load_protocol_safe():
 
 
 def _current_utc_hour() -> str:
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc).strftime("%H:")
+    from datetime import datetime
+
+    return datetime.now(UTC).strftime("%H:")
 
 
 def morning_checkin() -> None:
@@ -31,6 +36,7 @@ def morning_checkin() -> None:
     if protocol and protocol.supplements and protocol.supplements.morning:
         from apex.infra.keyboards import supplement_check_keyboard
         from apex.infra.telegram import send_with_keyboard
+
         send_with_keyboard("💊 Yesterday's supplements?", supplement_check_keyboard())
 
 
@@ -111,7 +117,8 @@ def injection_reminder() -> None:
                 from_day = stage.get("from_day")
                 if from_day and day == from_day:
                     dose_str = " · ".join(
-                        f"{k}: {v}" for k, v in stage.items()
+                        f"{k}: {v}"
+                        for k, v in stage.items()
                         if k not in ("from_day", "through_day")
                     )
                     alerts.append(f"⚠️ {c.name} dose change tonight: {dose_str}")
@@ -124,15 +131,18 @@ def injection_reminder() -> None:
     msg += "💉 Evening injections:\n\n" + "\n".join(lines)
     from apex.infra.keyboards import compound_check_keyboard
     from apex.infra.telegram import send_with_keyboard
+
     send_with_keyboard(msg, compound_check_keyboard())
 
 
 def missed_day_check() -> None:
-    from apex.infra.db import Repositories
-    from datetime import datetime, timezone
+    from datetime import datetime
     from zoneinfo import ZoneInfo
+
+    from apex.infra.db import Repositories
+
     protocol = _load_protocol_safe()
-    tz = ZoneInfo(protocol.profile.timezone) if protocol else timezone.utc
+    tz = ZoneInfo(protocol.profile.timezone) if protocol else UTC
     today = datetime.now(tz).strftime("%Y-%m-%d")
     repos = Repositories()
     logs = repos.logs.get_day(today)
@@ -145,6 +155,7 @@ def missed_day_check() -> None:
 
 def weekly_summary() -> None:
     from apex.infra.db import Repositories
+
     protocol = _load_protocol_safe()
     if not protocol:
         return
@@ -156,14 +167,14 @@ def weekly_summary() -> None:
         if not logs:
             lines.append(f"• {metric.name}: no data this week")
             continue
-        values = [l["value"] for l in logs if isinstance(l["value"], (int, float))]
+        values = [row["value"] for row in logs if isinstance(row["value"], (int, float))]
         if not values:
             lines.append(f"• {metric.name}: {len(logs)}/7 days logged")
             continue
         avg = sum(values) / len(values)
         target_str = f" / {metric.daily_target}{metric.unit_str}" if metric.daily_target else ""
         lines.append(
-            f"• {metric.name}: avg {avg:.1f}{metric.unit_str}{target_str} ({len(logs)}/7 days logged)"
+            f"• {metric.name}: avg {avg:.1f}{metric.unit_str}{target_str} ({len(logs)}/7 days logged)"  # noqa: E501
         )
     send("\n".join(lines))
 

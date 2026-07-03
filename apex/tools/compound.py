@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from strands import tool
 
 from apex.domain.compound import CompoundCycle
