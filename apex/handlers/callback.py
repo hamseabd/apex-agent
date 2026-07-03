@@ -10,9 +10,11 @@ def handle_callback(callback_query: dict, repos=None, store=None) -> None:
     """Dispatch an inline keyboard callback by its callback_data."""
     if repos is None:
         from apex.infra.db import Repositories
+
         repos = Repositories()
     if store is None:
         from apex.infra.storage import ProtocolStore
+
         store = ProtocolStore()
 
     callback_id = callback_query["id"]
@@ -42,7 +44,8 @@ def handle_callback(callback_query: dict, repos=None, store=None) -> None:
         logger.warning(f"Unknown callback: {data}")
 
 
-# Generic metric name for the optional compounds module (protocol-driven, not a hardcoded substance).
+# Generic metric name for the optional compounds module
+# (protocol-driven, not a hardcoded substance).
 COMPOUND_METRIC = "compounds"
 
 _FLOW_METRIC = {"supps": "supplements", "compounds": COMPOUND_METRIC}
@@ -57,6 +60,7 @@ def _morning_supplement_names(store) -> list[str]:
 
 def _on_cycle_compound_names(store) -> list[str]:
     from apex.domain.compound import CompoundCycle
+
     protocol = store.load()
     names = []
     for entry in protocol.compounds or []:
@@ -96,16 +100,20 @@ def _handle_compounds_none(repos, store) -> None:
 
 def _handle_supps_partial_start(message_id: int, repos, store) -> None:
     from apex.infra.keyboards import supplement_partial_keyboard
+
     names = _morning_supplement_names(store)
     repos.users.set_state(
         "awaiting_partial_picks",
         {"flow": "supps", "selected": [], "all_names": names},
     )
-    edit_message(message_id, "Which supplements did you take?", supplement_partial_keyboard([], names))
+    edit_message(
+        message_id, "Which supplements did you take?", supplement_partial_keyboard([], names)
+    )
 
 
 def _handle_compounds_partial_start(message_id: int, repos, store) -> None:
     from apex.infra.keyboards import compound_partial_keyboard
+
     names = _on_cycle_compound_names(store)
     repos.users.set_state(
         "awaiting_partial_picks",
@@ -116,6 +124,7 @@ def _handle_compounds_partial_start(message_id: int, repos, store) -> None:
 
 def _handle_toggle(data: str, message_id: int, repos) -> None:
     from apex.infra.keyboards import _slug, compound_partial_keyboard, supplement_partial_keyboard
+
     state, ctx = repos.users.get_state()
     if state != "awaiting_partial_picks":
         logger.warning("Toggle received outside partial-pick flow")
@@ -133,7 +142,9 @@ def _handle_toggle(data: str, message_id: int, repos) -> None:
     repos.users.set_state("awaiting_partial_picks", {**ctx, "selected": selected})
     flow = ctx.get("flow", "supps")
     builder = supplement_partial_keyboard if flow == "supps" else compound_partial_keyboard
-    prompt = "Which supplements did you take?" if flow == "supps" else "Which injections did you do?"
+    prompt = (
+        "Which supplements did you take?" if flow == "supps" else "Which injections did you do?"
+    )
     edit_message(message_id, prompt, builder(selected, all_names))
 
 

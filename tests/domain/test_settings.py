@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 
 def test_settings_reads_from_env(monkeypatch):
@@ -8,6 +9,7 @@ def test_settings_reads_from_env(monkeypatch):
     monkeypatch.setenv("TABLE_NAME", "apex-test")
 
     from apex.settings import get_settings
+
     get_settings.cache_clear()
     s = get_settings()
 
@@ -24,6 +26,7 @@ def test_settings_bedrock_model_id_defaults_to_sonnet(monkeypatch):
     monkeypatch.delenv("BEDROCK_MODEL_ID", raising=False)
 
     from apex.settings import get_settings
+
     get_settings.cache_clear()
     s = get_settings()
 
@@ -37,6 +40,7 @@ def test_settings_bedrock_model_id_reads_from_env(monkeypatch):
     monkeypatch.setenv("BEDROCK_MODEL_ID", "eu.anthropic.claude-opus-4-7")
 
     from apex.settings import get_settings
+
     get_settings.cache_clear()
     s = get_settings()
 
@@ -47,6 +51,7 @@ def test_settings_missing_required_raises(monkeypatch):
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
     monkeypatch.delenv("CONFIG_BUCKET", raising=False)
     from apex.settings import get_settings
+
     get_settings.cache_clear()
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         get_settings()

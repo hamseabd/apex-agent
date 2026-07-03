@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 def _make_repos(ddb_table):
     from apex.infra.db import Repositories
+
     return Repositories(table=ddb_table, user_id="999")
 
 

@@ -5,18 +5,20 @@ from apex.domain.models import Protocol
 
 
 def _protocol(compounds: list[dict] | None) -> Protocol:
-    return Protocol(**{
-        "version": "2",
-        "profile": {
-            "name": "Alex",
-            "goal": "recomp",
-            "timezone": "America/New_York",
-            "start_date": "2026-05-19",
-        },
-        "tracking": {"metrics": [{"name": "sleep", "type": "numeric"}]},
-        "schedule": {},
-        "compounds": compounds,
-    })
+    return Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "Alex",
+                "goal": "recomp",
+                "timezone": "America/New_York",
+                "start_date": "2026-05-19",
+            },
+            "tracking": {"metrics": [{"name": "sleep", "type": "numeric"}]},
+            "schedule": {},
+            "compounds": compounds,
+        }
+    )
 
 
 def _compounds() -> list[dict]:
@@ -44,6 +46,7 @@ def _idle_repos() -> MagicMock:
 
 def test_is_compound_arrival_matches_name():
     from apex.handlers.message import _is_compound_arrival
+
     protocol = _protocol(_compounds())
     assert _is_compound_arrival("BPC-157 arrived", protocol)
     assert _is_compound_arrival("bpc arrived", protocol)
@@ -52,6 +55,7 @@ def test_is_compound_arrival_matches_name():
 
 def test_is_compound_arrival_rejects_non_arrival():
     from apex.handlers.message import _is_compound_arrival
+
     protocol = _protocol(_compounds())
     assert not _is_compound_arrival("slept 8 hours", protocol)
     assert not _is_compound_arrival("BPC-157 is great", protocol)
@@ -59,12 +63,13 @@ def test_is_compound_arrival_rejects_non_arrival():
 
 def test_is_compound_arrival_false_without_compounds():
     from apex.handlers.message import _is_compound_arrival
+
     assert not _is_compound_arrival("BPC-157 arrived", _protocol(None))
 
 
 def test_arrival_activates_compound_and_sends(s3_bucket):
-    from apex.infra.storage import ProtocolStore
     from apex.handlers.message import handle
+    from apex.infra.storage import ProtocolStore
 
     store = ProtocolStore(bucket="apex-test-bucket")
     store.save(_protocol(_compounds()))
@@ -82,8 +87,8 @@ def test_arrival_activates_compound_and_sends(s3_bucket):
 
 
 def test_arrival_all_keyword_activates_everything(s3_bucket):
-    from apex.infra.storage import ProtocolStore
     from apex.handlers.message import handle
+    from apex.infra.storage import ProtocolStore
 
     store = ProtocolStore(bucket="apex-test-bucket")
     store.save(_protocol(_compounds()))
@@ -99,8 +104,8 @@ def test_arrival_all_keyword_activates_everything(s3_bucket):
 
 
 def test_non_arrival_message_falls_through_to_agent(s3_bucket):
-    from apex.infra.storage import ProtocolStore
     from apex.handlers.message import handle
+    from apex.infra.storage import ProtocolStore
 
     store = ProtocolStore(bucket="apex-test-bucket")
     store.save(_protocol(_compounds()))
@@ -115,12 +120,17 @@ def test_non_arrival_message_falls_through_to_agent(s3_bucket):
 
 def test_is_compound_arrival_short_name_needs_word_boundary():
     from apex.handlers.message import _is_compound_arrival
-    protocol = _protocol([{
-        "name": "T",
-        "cycle": {"on_weeks": 12, "off_weeks": 4},
-        "dosing": {"am": "100mg"},
-        "start_date": None,
-    }])
+
+    protocol = _protocol(
+        [
+            {
+                "name": "T",
+                "cycle": {"on_weeks": 12, "off_weeks": 4},
+                "dosing": {"am": "100mg"},
+                "start_date": None,
+            }
+        ]
+    )
     # "t" is inside "the package" but not a word — must not hijack the message
     assert not _is_compound_arrival("the package arrived", protocol)
     assert _is_compound_arrival("T arrived", protocol)
@@ -128,6 +138,7 @@ def test_is_compound_arrival_short_name_needs_word_boundary():
 
 def test_handle_works_without_store():
     from apex.handlers.message import handle
+
     agent = MagicMock(return_value="ok")
     with patch("apex.handlers.message.send"):
         handle(text="hello", agent=agent, repos=_idle_repos())

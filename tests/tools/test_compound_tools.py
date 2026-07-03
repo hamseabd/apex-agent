@@ -5,18 +5,20 @@ from apex.domain.models import Protocol
 
 
 def _protocol(compounds: list[dict]) -> Protocol:
-    return Protocol(**{
-        "version": "2",
-        "profile": {
-            "name": "Alex",
-            "goal": "recomp",
-            "timezone": "America/New_York",
-            "start_date": "2026-05-19",
-        },
-        "tracking": {"metrics": [{"name": "sleep", "type": "numeric"}]},
-        "schedule": {},
-        "compounds": compounds,
-    })
+    return Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "Alex",
+                "goal": "recomp",
+                "timezone": "America/New_York",
+                "start_date": "2026-05-19",
+            },
+            "tracking": {"metrics": [{"name": "sleep", "type": "numeric"}]},
+            "schedule": {},
+            "compounds": compounds,
+        }
+    )
 
 
 def _compound(**overrides) -> dict:
@@ -32,6 +34,7 @@ def _compound(**overrides) -> dict:
 
 def test_build_compound_tools_returns_status_and_activate():
     from apex.tools.compound import build_compound_tools
+
     protocol = _protocol([_compound()])
     tools = build_compound_tools(protocol.compounds, MagicMock(), MagicMock())
     names = [t.__name__ for t in tools]
@@ -41,6 +44,7 @@ def test_build_compound_tools_returns_status_and_activate():
 
 def test_get_compound_status_not_started():
     from apex.tools.compound import build_compound_tools
+
     protocol = _protocol([_compound()])
     tools = build_compound_tools(protocol.compounds, MagicMock(), MagicMock())
     status = next(t for t in tools if t.__name__ == "get_compound_status")
@@ -52,6 +56,7 @@ def test_get_compound_status_not_started():
 
 def test_get_compound_status_on_cycle_shows_dose():
     from apex.tools.compound import build_compound_tools
+
     start = (date.today() - timedelta(days=9)).isoformat()
     protocol = _protocol([_compound(start_date=start)])
     tools = build_compound_tools(protocol.compounds, MagicMock(), MagicMock())
@@ -63,6 +68,7 @@ def test_get_compound_status_on_cycle_shows_dose():
 
 def test_get_compound_status_no_compounds():
     from apex.tools.compound import build_compound_tools
+
     tools = build_compound_tools([], MagicMock(), MagicMock())
     status = next(t for t in tools if t.__name__ == "get_compound_status")
     assert status() == "No compounds configured."
@@ -70,6 +76,7 @@ def test_get_compound_status_no_compounds():
 
 def test_activate_compound_sets_start_date_and_saves():
     from apex.tools.compound import build_compound_tools
+
     protocol = _protocol([_compound()])
     store = MagicMock()
     store.load.return_value = protocol
@@ -87,6 +94,7 @@ def test_activate_compound_sets_start_date_and_saves():
 
 def test_activate_compound_unknown_name():
     from apex.tools.compound import build_compound_tools
+
     protocol = _protocol([_compound()])
     store = MagicMock()
     store.load.return_value = protocol
@@ -103,6 +111,7 @@ def test_activate_compound_unknown_name():
 def test_factory_includes_compound_tools_without_store():
     # build_tools(protocol, MagicMock()) — store defaults to None, must not crash
     from apex.tools.factory import build_tools
+
     protocol = _protocol([_compound()])
     tools = build_tools(protocol, MagicMock())
     names = [t.__name__ for t in tools]
@@ -112,6 +121,7 @@ def test_factory_includes_compound_tools_without_store():
 
 def test_factory_passes_store_to_compound_tools():
     from apex.tools.factory import build_tools
+
     protocol = _protocol([_compound()])
     store = MagicMock()
     store.load.return_value = protocol

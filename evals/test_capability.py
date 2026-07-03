@@ -8,6 +8,7 @@ Collection is always safe (no Bedrock at import). Execution is gated on the
 `live_bedrock` fixture, so `pytest evals/` collects + skips with no creds and
 runs for real with APEX_EVAL_LIVE=1.
 """
+
 from __future__ import annotations
 
 import json
@@ -49,20 +50,24 @@ def test_case(case, live_bedrock, eval_trials, request):
     for trial in range(eval_trials):
         result = run_turn(case["utterance"])
         passed, reason = grade(case, result)
-        _record({
-            "id": case["id"],
-            "category": case.get("category"),
-            "trial": trial,
-            "passed": passed,
-            "reason": reason,
-            "model_id": os.environ.get("BEDROCK_MODEL_ID"),
-            "dataset_version": 1,
-            "git_sha": os.environ.get("GIT_SHA", ""),
-            "reply": result.reply,
-            "tool_calls": result.tool_calls,
-            "latency_s": result.latency_s,
-        })
+        _record(
+            {
+                "id": case["id"],
+                "category": case.get("category"),
+                "trial": trial,
+                "passed": passed,
+                "reason": reason,
+                "model_id": os.environ.get("BEDROCK_MODEL_ID"),
+                "dataset_version": 1,
+                "git_sha": os.environ.get("GIT_SHA", ""),
+                "reply": result.reply,
+                "tool_calls": result.tool_calls,
+                "latency_s": result.latency_s,
+            }
+        )
         if not passed:
             failures.append(f"trial {trial}: {reason}")
 
-    assert not failures, f"{case['id']} failed {len(failures)}/{eval_trials}: " + "; ".join(failures)
+    assert not failures, f"{case['id']} failed {len(failures)}/{eval_trials}: " + "; ".join(
+        failures
+    )
