@@ -6,10 +6,7 @@ DISCLAIMER = "⚠️ Informational, from your documents — not medical advice."
 
 def assemble_sources(docs: list[dict]) -> str:
     """Wrap each doc in a labeled <source> tag so the model can cite by filename."""
-    return "\n".join(
-        f'<source name="{d["source"]}">\n{d["text"]}\n</source>'
-        for d in docs
-    )
+    return "\n".join(f'<source name="{d["source"]}">\n{d["text"]}\n</source>' for d in docs)
 
 
 def grounding_system_prompt(sources_block: str) -> str:

@@ -64,6 +64,7 @@ def build_tools(protocol: Protocol, repos, store=None) -> list:
 
     if _knowledge_corpus_available():
         from apex.tools.knowledge import build_knowledge_tools
+
         tools.extend(build_knowledge_tools(KnowledgeStore()))
 
     return tools

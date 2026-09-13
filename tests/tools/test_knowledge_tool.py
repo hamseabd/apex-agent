@@ -1,4 +1,3 @@
-
 import apex.tools.knowledge as kn
 from apex.domain.knowledge import DISCLAIMER, REFUSAL
 

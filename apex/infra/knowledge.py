@@ -32,10 +32,12 @@ class KnowledgeStore:
         docs: list[dict] = []
         for key in self._list_keys():
             body = self._client.get_object(Bucket=self._bucket, Key=key)["Body"].read()
-            docs.append({
-                "source": key[len(_PREFIX):],
-                "text": body.decode("utf-8"),
-            })
+            docs.append(
+                {
+                    "source": key[len(_PREFIX) :],
+                    "text": body.decode("utf-8"),
+                }
+            )
         return docs
 
     def total_tokens(self) -> int:

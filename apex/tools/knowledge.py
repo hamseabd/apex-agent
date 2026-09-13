@@ -19,12 +19,14 @@ _TOKEN_WARN_THRESHOLD = 150_000
 @lru_cache(maxsize=1)
 def _bedrock_client():
     from apex.settings import get_settings
+
     return boto3.client("bedrock-runtime", region_name=get_settings().aws_region)
 
 
 def _call_bedrock(system: str, question: str) -> str:
     """Single grounded converse call with a cached system block."""
     from apex.settings import get_settings
+
     response = _bedrock_client().converse(
         modelId=get_settings().bedrock_model_id,
         system=[{"text": system}, {"cachePoint": {"type": "default"}}],
