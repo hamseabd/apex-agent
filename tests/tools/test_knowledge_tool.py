@@ -1,7 +1,6 @@
-import pytest
 
 import apex.tools.knowledge as kn
-from apex.domain.knowledge import REFUSAL, DISCLAIMER
+from apex.domain.knowledge import DISCLAIMER, REFUSAL
 
 
 class FakeStore:
@@ -30,7 +29,9 @@ def test_empty_corpus_refuses_without_bedrock(monkeypatch):
 
 
 def test_grounded_answer_appends_disclaimer(monkeypatch):
-    monkeypatch.setattr(kn, "_call_bedrock", lambda system, question: "Creatine is 5g/day [creatine.md].")
+    monkeypatch.setattr(
+        kn, "_call_bedrock", lambda system, question: "Creatine is 5g/day [creatine.md]."
+    )
     store = FakeStore(docs=[{"source": "creatine.md", "text": "5g/day"}])
     result = kn._ask(store, "creatine dose?")
     assert "[creatine.md]" in result

@@ -1,6 +1,6 @@
 from apex.domain.knowledge import (
-    REFUSAL,
     DISCLAIMER,
+    REFUSAL,
     assemble_sources,
     grounding_system_prompt,
 )
