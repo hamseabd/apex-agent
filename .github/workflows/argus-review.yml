@@ -1,3 +1,17 @@
+# Argus (https://github.com/hamseabd/argus) reviews pull requests on this
+# repository: a lead reviewer fans out to read-only specialists, an
+# independent verifier checks every finding, and the result is posted as
+# inline review comments under the Argus GitHub App's own name. The workflow
+# lives in the argus repository and is pinned to a commit (the v1 release)
+# because it receives secrets; the pull request head is read, never executed.
+#
+# Needs three repository secrets: CLAUDE_CODE_OAUTH_TOKEN (from
+# `claude setup-token`), and ARGUS_APP_ID and ARGUS_APP_PRIVATE_KEY for the
+# app, which must be installed on this repository. This workflow's own token
+# stays read-only; the app token posts the review.
+# It runs once, when the pull request opens or leaves draft; a maintainer can
+# rerun it by toggling the pull request through draft.
+
 name: argus-review
 
 on:
@@ -13,6 +27,7 @@ concurrency:
 
 jobs:
   review:
+    # Drafts are skipped, and so are forks, which get no secrets and a read-only token.
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository
