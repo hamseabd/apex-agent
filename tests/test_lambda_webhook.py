@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, call
 
 import lambda_webhook  # import first so module-level `send` binding exists
 
@@ -11,6 +13,7 @@ CHAT_ID = "999"  # matches conftest.py TELEGRAM_CHAT_ID
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _event(body: dict) -> dict:
     return {"body": json.dumps(body)}
@@ -32,9 +35,11 @@ def _invoke(event: dict) -> dict:
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _clear_settings_cache():
     from apex.settings import get_settings
+
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -82,6 +87,7 @@ def patched(store, repos):
 # Security: chat-ID gating
 # ---------------------------------------------------------------------------
 
+
 def test_message_from_wrong_chat_returns_200_silently(patched):
     resp = _invoke(_msg("hello", chat_id="0000"))
     assert resp == {"statusCode": 200}
@@ -98,6 +104,7 @@ def test_callback_from_wrong_chat_returns_200_silently(patched):
 # ---------------------------------------------------------------------------
 # Robustness: malformed / empty payloads
 # ---------------------------------------------------------------------------
+
 
 def test_empty_body_returns_200(patched):
     resp = lambda_webhook.handler({"body": None}, MagicMock())
@@ -120,6 +127,7 @@ def test_unknown_update_type_returns_200(patched):
 # First-run: no protocol on S3
 # ---------------------------------------------------------------------------
 
+
 def test_no_protocol_non_setup_message_sends_welcome(patched, store):
     store.exists.return_value = False
     resp = _invoke(_msg("hello"))
@@ -138,6 +146,7 @@ def test_no_protocol_setup_command_proceeds_to_handle(patched, store):
 # ---------------------------------------------------------------------------
 # Normal message routing
 # ---------------------------------------------------------------------------
+
 
 def test_valid_message_routes_to_handle_with_agent(patched, repos):
     resp = _invoke(_msg("slept 7 hours"))
@@ -158,6 +167,7 @@ def test_callback_from_correct_chat_routes_to_handle_callback(patched):
 # Resilience: unhandled exceptions must never break the 200 contract
 # ---------------------------------------------------------------------------
 
+
 def test_unhandled_exception_in_handle_still_returns_200(patched):
     patched["handle"].side_effect = RuntimeError("boom")
     resp = _invoke(_msg("hello"))
@@ -167,6 +177,7 @@ def test_unhandled_exception_in_handle_still_returns_200(patched):
 # ---------------------------------------------------------------------------
 # C1: store.exists() must be called exactly once per message (not twice)
 # ---------------------------------------------------------------------------
+
 
 def test_store_exists_called_exactly_once_not_twice(patched, store):
     _invoke(_msg("slept 7 hours"))
@@ -179,6 +190,7 @@ def test_store_exists_called_exactly_once_not_twice(patched, store):
 # C2: agent must NOT be built when user sends /setup (wasted work)
 # ---------------------------------------------------------------------------
 
+
 def test_setup_command_does_not_build_agent(patched):
     _invoke(_msg("/setup"))
     patched["build_agent"].assert_not_called()
@@ -187,6 +199,7 @@ def test_setup_command_does_not_build_agent(patched):
 # ---------------------------------------------------------------------------
 # I3: ProtocolStore must NOT be constructed before the chat-ID guard fires
 # ---------------------------------------------------------------------------
+
 
 def test_protocol_store_not_constructed_for_wrong_chat(patched):
     with patch("apex.infra.storage.ProtocolStore") as mock_cls:

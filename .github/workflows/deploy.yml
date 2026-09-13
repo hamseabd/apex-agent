@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPO: apex
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Compute image tag
+        id: meta
+        run: echo "tag=v$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Build and push
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          docker build -t "$REGISTRY/$ECR_REPO:$TAG" .
+          docker push "$REGISTRY/$ECR_REPO:$TAG"
+
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Resolve registry
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Update Lambda functions
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ needs.build-push.outputs.image_tag }}
+        run: |
+          for fn in apex_webhook apex_scheduler; do
+            aws lambda update-function-code \
+              --function-name "$fn" \
+              --image-uri "$REGISTRY/$ECR_REPO:$TAG" \
+              --region "$AWS_REGION" \
+              --query 'FunctionName' --output text
+          done

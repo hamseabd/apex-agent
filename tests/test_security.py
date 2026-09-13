@@ -1,9 +1,7 @@
 """Security regression tests — one test per identified vulnerability."""
+
 import json
 from unittest.mock import MagicMock
-
-import pytest
-
 
 # ── Fix 1: HTML injection in _send_summary ──────────────────────────────────
 
@@ -37,12 +35,14 @@ def test_send_summary_escapes_html_in_compound_names(monkeypatch):
 
     captured = []
     monkeypatch.setattr("apex.handlers.setup.send", lambda t: captured.append(t))
-    _send_summary({
-        "goal": "lean out",
-        "metrics": [],
-        "schedule": {},
-        "compounds": [{"name": "<a href='http://evil.com'>BPC-157</a>"}],
-    })
+    _send_summary(
+        {
+            "goal": "lean out",
+            "metrics": [],
+            "schedule": {},
+            "compounds": [{"name": "<a href='http://evil.com'>BPC-157</a>"}],
+        }
+    )
     text = captured[0]
     assert "<a href" not in text, "raw <a> tag in compound name must be escaped"
     assert "&lt;a" in text
@@ -56,10 +56,12 @@ def test_apply_edit_strips_unknown_protocol_keys(monkeypatch):
 
     monkeypatch.setattr(
         "apex.handlers.setup._call_llm",
-        lambda system_prompt, user_message: json.dumps({
-            "updated_protocol": {"goal": "lose fat", "inject": "malicious_value"},
-            "reply": "Updated.",
-        }),
+        lambda system_prompt, user_message: json.dumps(
+            {
+                "updated_protocol": {"goal": "lose fat", "inject": "malicious_value"},
+                "reply": "Updated.",
+            }
+        ),
     )
     repos = MagicMock()
     monkeypatch.setattr("apex.handlers.setup.send", lambda t: None)
@@ -78,10 +80,12 @@ def test_apply_edit_rejects_non_dict_updated_protocol(monkeypatch):
 
     monkeypatch.setattr(
         "apex.handlers.setup._call_llm",
-        lambda system_prompt, user_message: json.dumps({
-            "updated_protocol": ["hacked", "list"],
-            "reply": "hacked",
-        }),
+        lambda system_prompt, user_message: json.dumps(
+            {
+                "updated_protocol": ["hacked", "list"],
+                "reply": "hacked",
+            }
+        ),
     )
     repos = MagicMock()
     monkeypatch.setattr("apex.handlers.setup.send", lambda t: None)
@@ -101,11 +105,13 @@ def test_handle_setup_message_rejects_oversized_extracted_data(monkeypatch):
 
     monkeypatch.setattr(
         "apex.handlers.setup._ask_claude",
-        lambda *a, **kw: json.dumps({
-            "reply": "Got it.",
-            "extracted": _HUGE_EXTRACTED,
-            "advance": True,
-        }),
+        lambda *a, **kw: json.dumps(
+            {
+                "reply": "Got it.",
+                "extracted": _HUGE_EXTRACTED,
+                "advance": True,
+            }
+        ),
     )
     repos = MagicMock()
     monkeypatch.setattr("apex.handlers.setup.send", lambda t: None)
@@ -138,6 +144,7 @@ def test_send_with_keyboard_includes_parse_mode(monkeypatch):
 
 def test_deep_update_preserves_extra_yaml_keys():
     from ruamel.yaml.comments import CommentedMap
+
     from apex.infra.storage import _deep_update
 
     target = CommentedMap({"name": "Alex", "custom_note": "keep me"})

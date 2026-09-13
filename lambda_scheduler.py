@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
-from apex.infra.telemetry import logger, tracer, metrics
+from apex.infra.telemetry import logger, metrics, tracer
 
 
 @tracer.capture_lambda_handler
@@ -15,4 +15,5 @@ def handler(event: dict, context: LambdaContext) -> None:
         return
 
     from apex.scheduler.jobs import run
+
     run(job)

@@ -1,4 +1,4 @@
-from apex.domain.models import Metric, Protocol, Compound, Schedule
+from apex.domain.models import Compound, Metric, Protocol
 
 
 def test_metric_numeric_defaults():
@@ -23,7 +23,12 @@ def test_metric_unit_str_property():
 def test_protocol_parses_tracking_metrics():
     data = {
         "version": "2",
-        "profile": {"name": "Alex", "goal": "recomp", "timezone": "America/New_York", "start_date": "2026-05-19"},
+        "profile": {
+            "name": "Alex",
+            "goal": "recomp",
+            "timezone": "America/New_York",
+            "start_date": "2026-05-19",
+        },
         "tracking": {
             "metrics": [
                 {"name": "sleep", "type": "numeric", "unit": "hours", "daily_target": 8},
@@ -41,7 +46,12 @@ def test_protocol_parses_tracking_metrics():
 def test_protocol_no_compounds_is_none():
     data = {
         "version": "2",
-        "profile": {"name": "Alex", "goal": "recomp", "timezone": "America/New_York", "start_date": "2026-05-19"},
+        "profile": {
+            "name": "Alex",
+            "goal": "recomp",
+            "timezone": "America/New_York",
+            "start_date": "2026-05-19",
+        },
         "tracking": {"metrics": [{"name": "sleep"}]},
         "schedule": {},
     }
@@ -52,7 +62,12 @@ def test_protocol_no_compounds_is_none():
 def test_protocol_no_supplements_is_none():
     data = {
         "version": "2",
-        "profile": {"name": "Alex", "goal": "recomp", "timezone": "America/New_York", "start_date": "2026-05-19"},
+        "profile": {
+            "name": "Alex",
+            "goal": "recomp",
+            "timezone": "America/New_York",
+            "start_date": "2026-05-19",
+        },
         "tracking": {"metrics": []},
         "schedule": {},
     }
@@ -71,12 +86,14 @@ def test_compound_start_date_none_by_default():
 
 
 def test_get_target_returns_value_for_known_metric():
-    from apex.domain.models import TrackingConfig, Metric
+    from apex.domain.models import Metric, TrackingConfig
+
     tc = TrackingConfig(metrics=[Metric(name="water", daily_target=100.0)])
     assert tc.get_target("water") == 100.0
 
 
 def test_get_target_returns_none_for_unknown_metric():
     from apex.domain.models import TrackingConfig
+
     tc = TrackingConfig(metrics=[])
     assert tc.get_target("sleep") is None

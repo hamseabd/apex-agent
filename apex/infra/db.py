@@ -1,5 +1,6 @@
 from __future__ import annotations
-from datetime import date, datetime, timedelta, timezone
+
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -48,7 +49,7 @@ class LogRepository:
             "GSI1SK": log_date,
             "metric": metric,
             "value": _encode(value),
-            "logged_at": datetime.now(timezone.utc).isoformat(),
+            "logged_at": datetime.now(UTC).isoformat(),
         }
         if notes:
             item["notes"] = notes
@@ -57,8 +58,7 @@ class LogRepository:
     def get_day(self, date_str: str) -> list[dict]:
         resp = self._table.query(
             KeyConditionExpression=(
-                Key("PK").eq(f"U#{self._user_id}") &
-                Key("SK").begins_with(f"LOG#{date_str}")
+                Key("PK").eq(f"U#{self._user_id}") & Key("SK").begins_with(f"LOG#{date_str}")
             ),
         )
         return [_decode(i) for i in resp.get("Items", [])]
@@ -69,8 +69,8 @@ class LogRepository:
         resp = self._table.query(
             IndexName="GSI1",
             KeyConditionExpression=(
-                Key("GSI1PK").eq(f"U#{self._user_id}#{metric}") &
-                Key("GSI1SK").between(start, end.isoformat())
+                Key("GSI1PK").eq(f"U#{self._user_id}#{metric}")
+                & Key("GSI1SK").between(start, end.isoformat())
             ),
             ScanIndexForward=False,
         )
@@ -87,48 +87,49 @@ class UserRepository:
         self._user_id = user_id or get_settings().telegram_chat_id
 
     def get_state(self) -> tuple[str, dict]:
-        resp = self._table.get_item(
-            Key={"PK": f"U#{self._user_id}", "SK": "#STATE"}
-        )
+        resp = self._table.get_item(Key={"PK": f"U#{self._user_id}", "SK": "#STATE"})
         item = resp.get("Item")
         if not item:
             return "idle", {}
         ttl: Any = item.get("ttl", 0)
-        now = int(datetime.now(timezone.utc).timestamp())
+        now = int(datetime.now(UTC).timestamp())
         if ttl and now > int(ttl):
             return "idle", {}
         return str(item.get("state", "idle")), _decode(item.get("context", {}))
 
     def set_state(self, state: str, context: dict, ttl_seconds: int = 600) -> None:
-        now = int(datetime.now(timezone.utc).timestamp())
-        self._table.put_item(Item={
-            "PK": f"U#{self._user_id}",
-            "SK": "#STATE",
-            "state": state,
-            "context": _encode(context),
-            "ttl": now + ttl_seconds,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        })
+        now = int(datetime.now(UTC).timestamp())
+        self._table.put_item(
+            Item={
+                "PK": f"U#{self._user_id}",
+                "SK": "#STATE",
+                "state": state,
+                "context": _encode(context),
+                "ttl": now + ttl_seconds,
+                "updated_at": datetime.now(UTC).isoformat(),
+            }
+        )
 
     def clear_state(self) -> None:
         self._table.delete_item(Key={"PK": f"U#{self._user_id}", "SK": "#STATE"})
 
     def get_profile(self) -> dict | None:
-        resp = self._table.get_item(
-            Key={"PK": f"U#{self._user_id}", "SK": "#PROFILE"}
-        )
+        resp = self._table.get_item(Key={"PK": f"U#{self._user_id}", "SK": "#PROFILE"})
         return _decode(resp["Item"]) if "Item" in resp else None
 
     def save_profile(self, profile: dict) -> None:
-        self._table.put_item(Item={
-            "PK": f"U#{self._user_id}",
-            "SK": "#PROFILE",
-            **_encode(profile),
-        })
+        self._table.put_item(
+            Item={
+                "PK": f"U#{self._user_id}",
+                "SK": "#PROFILE",
+                **_encode(profile),
+            }
+        )
 
 
 class Repositories:
     """Dependency container — pass into agent, tools, and handlers."""
+
     def __init__(self, table=None, user_id: str | None = None):
         self.logs = LogRepository(table, user_id)
         self.users = UserRepository(table, user_id)

@@ -34,10 +34,7 @@ def _make_read_tool(metric: Metric, repos, tz_name: str | None = None):
         logs = repos.logs.get_range(metric=metric.name, days=days, today=today)
         if not logs:
             return f"No {metric.name} logs in the last {days} days."
-        lines = [
-            f"• {l['GSI1SK']}: {l['value']}{metric.unit_str}"
-            for l in logs
-        ]
+        lines = [f"• {row['GSI1SK']}: {row['value']}{metric.unit_str}" for row in logs]
         return f"{metric.name.title()} (last {days} days):\n" + "\n".join(lines)
 
     read_fn.__name__ = f"get_{metric.name}_logs"
@@ -62,6 +59,7 @@ def build_tools(protocol: Protocol, repos, store=None) -> list:
 
     if protocol.compounds:
         from apex.tools.compound import build_compound_tools
+
         tools.extend(build_compound_tools(protocol.compounds, repos, store, tz_name))
 
     if _knowledge_corpus_available():

@@ -9,6 +9,7 @@ protocol on mock S3 and a mock DynamoDB table, sends one utterance, and returns 
 `TurnResult` snapshot of everything that changed. `grade()` scores a case against
 that snapshot using a deterministic state grader — no LLM judge in v1.
 """
+
 from __future__ import annotations
 
 import time
@@ -80,9 +81,9 @@ def _create_table(resource):
 @dataclass
 class TurnResult:
     reply: str
-    today_rows: list[dict]                 # log rows written for today
-    protocol_before: dict                  # protocol.model_dump() before the turn
-    protocol_after: dict                   # protocol.model_dump() after the turn
+    today_rows: list[dict]  # log rows written for today
+    protocol_before: dict  # protocol.model_dump() before the turn
+    protocol_after: dict  # protocol.model_dump() after the turn
     tool_calls: list[str] = field(default_factory=list)
     latency_s: float = 0.0
     error: str | None = None
@@ -102,9 +103,9 @@ def run_turn(
 
     Bedrock is REAL — this call costs tokens. DynamoDB/S3 are moto mocks.
     """
+    from apex.agent import build_agent
     from apex.infra.db import Repositories
     from apex.infra.storage import ProtocolStore
-    from apex.agent import build_agent
 
     yaml_text = protocol_yaml or EVAL_PROTOCOL.read_text()
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
+
 import re
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Optional
 
 from apex.domain.dates import local_today
 
@@ -37,12 +37,12 @@ class CompoundCycle:
     name: str
     on_weeks: int
     off_weeks: int
-    dosing: dict                          # {am: str, pm: str, days: str}
+    dosing: dict  # {am: str, pm: str, days: str}
     intro: list[dict] = field(default_factory=list)  # [{through_day: N, ...}, {from_day: N, ...}]
-    start_date: Optional[date] = None
+    start_date: date | None = None
 
     @classmethod
-    def from_protocol(cls, entry: dict) -> "CompoundCycle":
+    def from_protocol(cls, entry: dict) -> CompoundCycle:
         start_raw = entry.get("start_date")
         return cls(
             name=entry["name"],
@@ -53,7 +53,7 @@ class CompoundCycle:
             start_date=date.fromisoformat(start_raw) if start_raw else None,
         )
 
-    def get_status(self, today: Optional[date] = None) -> dict:
+    def get_status(self, today: date | None = None) -> dict:
         if today is None:
             today = local_today()
         if self.start_date is None:
@@ -85,7 +85,7 @@ class CompoundCycle:
                 "off_weeks": self.off_weeks,
             }
 
-    def get_current_dose(self, today: Optional[date] = None) -> dict:
+    def get_current_dose(self, today: date | None = None) -> dict:
         """Return today's dose, respecting intro stage overrides."""
         if today is None:
             today = local_today()

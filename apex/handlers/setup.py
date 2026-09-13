@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import html as _html
 import json
 from datetime import date
@@ -9,20 +10,31 @@ import boto3
 from apex.infra.telegram import send
 from apex.infra.telemetry import logger
 
-_ALLOWED_PROTOCOL_KEYS = frozenset({
-    "goal", "metrics", "supplements", "schedule", "compounds", "profile", "version",
-})
+_ALLOWED_PROTOCOL_KEYS = frozenset(
+    {
+        "goal",
+        "metrics",
+        "supplements",
+        "schedule",
+        "compounds",
+        "profile",
+        "version",
+    }
+)
 _MAX_CONTEXT_BYTES = 50_000
+
 
 @lru_cache(maxsize=1)
 def _bedrock_client():
     from apex.settings import get_settings
+
     return boto3.client("bedrock-runtime", region_name=get_settings().aws_region)
 
 
 def _call_llm(system_prompt: str, user_message: str) -> str:
     """Single-shot Bedrock call — no agent overhead, no history accumulation."""
     from apex.settings import get_settings
+
     response = _bedrock_client().converse(
         modelId=get_settings().bedrock_model_id,
         system=[{"text": system_prompt}],
@@ -31,19 +43,19 @@ def _call_llm(system_prompt: str, user_message: str) -> str:
     )
     return response["output"]["message"]["content"][0]["text"]
 
+
 _SETUP_TTL = 1800  # 30 minutes for setup flow
 
 _STAGE_PROMPTS = {
-    "goal": (
-        "Ask what their main health goal is. "
-        'Extract: {"goal": "<string>"}.'
-    ),
+    "goal": ('Ask what their main health goal is. Extract: {"goal": "<string>"}.'),
     "metrics": (
-        "Ask what they want to track daily (e.g. sleep, protein, water, weight, energy, meditation — whatever fits their lifestyle). "
+        "Ask what they want to track daily (e.g. sleep, protein, water, weight, "
+        "energy, meditation — whatever fits their lifestyle). "
         'Extract: {"metrics": ["<name1>", "<name2>", ...]}.'
     ),
     "supplements": (
-        "Ask about any supplements they take. Collect morning and evening separately with name and dose. "
+        "Ask about any supplements they take. Collect morning and evening "
+        "separately with name and dose. "
         "If none, use empty lists. "
         'Extract: {"supplements": {"morning": [{"name": str, "dose": str}], "evening": [...]}}.'
     ),
@@ -64,7 +76,9 @@ _STAGE_ORDER = ["goal", "metrics", "supplements", "schedule", "compounds", "conf
 
 
 def handle_setup_start(repos) -> None:
-    repos.users.set_state("setup_in_progress", {"step": "goal", "protocol": {}}, ttl_seconds=_SETUP_TTL)
+    repos.users.set_state(
+        "setup_in_progress", {"step": "goal", "protocol": {}}, ttl_seconds=_SETUP_TTL
+    )
     send(
         "👋 <b>Welcome to Apex!</b>\n\n"
         "I'll help you set up your personal health protocol — takes about 10 minutes.\n\n"
@@ -105,7 +119,9 @@ def handle_setup_message(text: str, step: str, context: dict, repos) -> None:
     if advance and extracted:
         updated = {**context.get("protocol", {}), **extracted}
         if len(json.dumps(updated).encode()) > _MAX_CONTEXT_BYTES:
-            logger.warning("Extracted data too large, not advancing", extra={"size": len(json.dumps(updated))})
+            logger.warning(
+                "Extracted data too large, not advancing", extra={"size": len(json.dumps(updated))}
+            )
             repos.users.set_state("setup_in_progress", context, ttl_seconds=_SETUP_TTL)
             send("Something went wrong processing that — could you try rephrasing?")
             return
@@ -136,10 +152,8 @@ def _send_summary(protocol: dict) -> None:
     sc = protocol.get("schedule", {})
     checkin = sc.get("morning_checkin", "07:00")
     compounds = protocol.get("compounds") or []
-    compound_str = (
-        f"\nCompounds: {_html.escape(', '.join(c['name'] if isinstance(c, dict) else str(c) for c in compounds))}"
-        if compounds else ""
-    )
+    compound_names = ", ".join(c["name"] if isinstance(c, dict) else str(c) for c in compounds)
+    compound_str = f"\nCompounds: {_html.escape(compound_names)}" if compounds else ""
     send(
         f"<b>Here's your protocol:</b>\n\n"
         f"Goal: {goal}\n"
@@ -159,8 +173,7 @@ def _apply_edit(text: str, context: dict, repos) -> None:
             '{"updated_protocol": {...}, "reply": "<confirmation message>"}'
         ),
         user_message=(
-            f"Current protocol: {json.dumps(context.get('protocol', {}))}\n"
-            f"User change: {text}"
+            f"Current protocol: {json.dumps(context.get('protocol', {}))}\nUser change: {text}"
         ),
     )
     try:
@@ -184,8 +197,8 @@ def _apply_edit(text: str, context: dict, repos) -> None:
 
 def _finalize(protocol: dict, repos) -> None:
     """Save protocol to S3, generate research docs, clear state."""
-    from apex.infra.storage import ProtocolStore
     from apex.domain.models import Protocol as ProtocolModel
+    from apex.infra.storage import ProtocolStore
 
     send("✅ Protocol locked. Saving your protocol...")
     repos.users.clear_state()
@@ -205,15 +218,16 @@ def _finalize(protocol: dict, repos) -> None:
         full_protocol = {
             "version": "2",
             "profile": {
-                "name": protocol.get("profile", {}).get("name", "User") if isinstance(protocol.get("profile"), dict) else "User",
+                "name": protocol.get("profile", {}).get("name", "User")
+                if isinstance(protocol.get("profile"), dict)
+                else "User",
                 "goal": protocol.get("goal", ""),
                 "timezone": "America/New_York",
                 "start_date": date.today().isoformat(),
             },
             "tracking": {
                 "metrics": [
-                    {"name": m} if isinstance(m, str) else m
-                    for m in protocol.get("metrics", [])
+                    {"name": m} if isinstance(m, str) else m for m in protocol.get("metrics", [])
                 ]
             },
             "supplements": protocol.get("supplements"),
@@ -234,10 +248,7 @@ def _finalize(protocol: dict, repos) -> None:
         )
     except Exception as e:
         logger.error(f"Setup finalization failed: {e}")
-        send(
-            "⚠️ There was an issue saving your protocol. "
-            "Send /setup to try again."
-        )
+        send("⚠️ There was an issue saving your protocol. Send /setup to try again.")
 
 
 def _ask_claude(user_text: str, step: str, protocol_so_far: dict, instruction: str) -> str:
@@ -248,13 +259,10 @@ def _ask_claude(user_text: str, step: str, protocol_so_far: dict, instruction: s
             "Respond ONLY with a JSON object (no markdown fences) in this shape:\n"
             '{"reply": "<your message to the user>", '
             '"extracted": <dict of extracted data or null>, '
-            '"advance": <true if you extracted all required data for this stage, false otherwise>}\n\n'
+            '"advance": <true if you extracted all required data for this stage, false otherwise>}\n\n'  # noqa: E501
             "If the user asks a research question instead of answering, "
             "give a brief general reply, note that detailed grounded answers with "
             "sources are available after setup, and set advance=false."
         ),
-        user_message=(
-            f"Protocol so far: {json.dumps(protocol_so_far)}\n"
-            f"User: {user_text}"
-        ),
+        user_message=(f"Protocol so far: {json.dumps(protocol_so_far)}\nUser: {user_text}"),
     )

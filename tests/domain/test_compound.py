@@ -98,7 +98,7 @@ def test_get_current_dose_three_stage_intro_resolves_correct_stage():
     ]
     c = CompoundCycle.from_protocol(_entry(intro=intro))
     start = date(2026, 6, 1)
-    assert c.get_current_dose(today=start + timedelta(days=9))["pm"] == "1mg"   # day 10
+    assert c.get_current_dose(today=start + timedelta(days=9))["pm"] == "1mg"  # day 10
     assert c.get_current_dose(today=start + timedelta(days=39))["pm"] == "2mg"  # day 40
     assert c.get_current_dose(today=start + timedelta(days=69))["pm"] == "4mg"  # day 70
 
@@ -112,6 +112,7 @@ def test_get_current_dose_strips_both_boundary_keys():
 
 def test_matches_compound_name_exact_and_word_boundary():
     from apex.domain.compound import matches_compound_name
+
     assert matches_compound_name("bpc-157", "BPC-157")
     assert matches_compound_name("the bpc-157 order", "BPC-157")
     assert matches_compound_name("t", "T")
@@ -120,12 +121,14 @@ def test_matches_compound_name_exact_and_word_boundary():
 
 def test_matches_compound_name_partial_prefix():
     from apex.domain.compound import matches_compound_name
+
     assert matches_compound_name("bpc", "BPC-157")  # 3+ char prefix of the name
     assert not matches_compound_name("b", "BPC-157")  # too short to trust
 
 
 def test_matches_compound_name_rejects_non_prefix_substring():
     from apex.domain.compound import matches_compound_name
+
     # CODE_REVIEW.md L9: "the" is a 3+ char substring of "Theanine" but not a
     # prefix — "the arrived" must not activate it
     assert not matches_compound_name("the", "Theanine")
@@ -135,6 +138,7 @@ def test_matches_compound_name_rejects_non_prefix_substring():
 
 def test_matches_compound_name_rejects_short_name_inside_words():
     from apex.domain.compound import matches_compound_name
+
     # "T" appears inside "the package" but not as a word — must not match
     assert not matches_compound_name("the package", "T")
     assert not matches_compound_name("everything", "T")

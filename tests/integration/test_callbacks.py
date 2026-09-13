@@ -6,25 +6,27 @@ from apex.domain.models import Protocol
 
 
 def _protocol(compounds: list[dict] | None = None) -> Protocol:
-    return Protocol(**{
-        "version": "2",
-        "profile": {
-            "name": "Alex",
-            "goal": "recomp",
-            "timezone": "America/New_York",
-            "start_date": "2026-05-19",
-        },
-        "tracking": {"metrics": [{"name": "sleep", "type": "numeric"}]},
-        "supplements": {
-            "morning": [
-                {"name": "Creatine", "dose": "5g"},
-                {"name": "Omega-3", "dose": "2g"},
-            ],
-            "evening": [{"name": "Magnesium", "dose": "400mg"}],
-        },
-        "schedule": {},
-        "compounds": compounds,
-    })
+    return Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "Alex",
+                "goal": "recomp",
+                "timezone": "America/New_York",
+                "start_date": "2026-05-19",
+            },
+            "tracking": {"metrics": [{"name": "sleep", "type": "numeric"}]},
+            "supplements": {
+                "morning": [
+                    {"name": "Creatine", "dose": "5g"},
+                    {"name": "Omega-3", "dose": "2g"},
+                ],
+                "evening": [{"name": "Magnesium", "dose": "400mg"}],
+            },
+            "schedule": {},
+            "compounds": compounds,
+        }
+    )
 
 
 def _on_cycle_compounds() -> list[dict]:
@@ -56,6 +58,7 @@ def _cq(data: str, message_id: int = 42) -> dict:
 def _env(aws_env, compounds=None):
     from apex.infra.db import Repositories
     from apex.infra.storage import ProtocolStore
+
     repos = Repositories(table=aws_env["table"], user_id="999")
     store = ProtocolStore(bucket="apex-test-bucket")
     store.save(_protocol(compounds))
@@ -64,10 +67,13 @@ def _env(aws_env, compounds=None):
 
 def test_supps_all_writes_log(aws_env):
     from apex.handlers.callback import handle_callback
+
     repos, store = _env(aws_env)
 
-    with patch("apex.handlers.callback.send") as mock_send, \
-         patch("apex.handlers.callback.answer_callback"):
+    with (
+        patch("apex.handlers.callback.send") as mock_send,
+        patch("apex.handlers.callback.answer_callback"),
+    ):
         handle_callback(_cq("supps:all"), repos=repos, store=store)
 
     logs = repos.logs.get_day(local_today("America/New_York").isoformat())
@@ -79,10 +85,10 @@ def test_supps_all_writes_log(aws_env):
 
 def test_supps_none_writes_zero(aws_env):
     from apex.handlers.callback import handle_callback
+
     repos, store = _env(aws_env)
 
-    with patch("apex.handlers.callback.send"), \
-         patch("apex.handlers.callback.answer_callback"):
+    with patch("apex.handlers.callback.send"), patch("apex.handlers.callback.answer_callback"):
         handle_callback(_cq("supps:none"), repos=repos, store=store)
 
     logs = repos.logs.get_day(local_today("America/New_York").isoformat())
@@ -92,10 +98,13 @@ def test_supps_none_writes_zero(aws_env):
 
 def test_compounds_all_writes_log(aws_env):
     from apex.handlers.callback import handle_callback
+
     repos, store = _env(aws_env, compounds=_on_cycle_compounds())
 
-    with patch("apex.handlers.callback.send") as mock_send, \
-         patch("apex.handlers.callback.answer_callback"):
+    with (
+        patch("apex.handlers.callback.send") as mock_send,
+        patch("apex.handlers.callback.answer_callback"),
+    ):
         handle_callback(_cq("compounds:all"), repos=repos, store=store)
 
     logs = repos.logs.get_day(local_today("America/New_York").isoformat())
@@ -110,10 +119,13 @@ def test_compounds_all_writes_log(aws_env):
 
 def test_supps_partial_start_sets_state_and_shows_chips(aws_env):
     from apex.handlers.callback import handle_callback
+
     repos, store = _env(aws_env)
 
-    with patch("apex.handlers.callback.edit_message") as mock_edit, \
-         patch("apex.handlers.callback.answer_callback"):
+    with (
+        patch("apex.handlers.callback.edit_message") as mock_edit,
+        patch("apex.handlers.callback.answer_callback"),
+    ):
         handle_callback(_cq("supps:partial"), repos=repos, store=store)
 
     state, ctx = repos.users.get_state()
@@ -127,14 +139,17 @@ def test_supps_partial_start_sets_state_and_shows_chips(aws_env):
 
 def test_toggle_updates_selected_list(aws_env):
     from apex.handlers.callback import handle_callback
+
     repos, store = _env(aws_env)
     repos.users.set_state(
         "awaiting_partial_picks",
         {"flow": "supps", "selected": [], "all_names": ["Creatine", "Omega-3"]},
     )
 
-    with patch("apex.handlers.callback.edit_message") as mock_edit, \
-         patch("apex.handlers.callback.answer_callback"):
+    with (
+        patch("apex.handlers.callback.edit_message") as mock_edit,
+        patch("apex.handlers.callback.answer_callback"),
+    ):
         handle_callback(_cq("toggle:creatine"), repos=repos, store=store)
 
     _, ctx = repos.users.get_state()
@@ -142,8 +157,10 @@ def test_toggle_updates_selected_list(aws_env):
     mock_edit.assert_called_once()
 
     # Toggle again removes it
-    with patch("apex.handlers.callback.edit_message"), \
-         patch("apex.handlers.callback.answer_callback"):
+    with (
+        patch("apex.handlers.callback.edit_message"),
+        patch("apex.handlers.callback.answer_callback"),
+    ):
         handle_callback(_cq("toggle:creatine"), repos=repos, store=store)
 
     _, ctx = repos.users.get_state()
@@ -152,14 +169,17 @@ def test_toggle_updates_selected_list(aws_env):
 
 def test_supps_partial_done_writes_fraction_and_clears_state(aws_env):
     from apex.handlers.callback import handle_callback
+
     repos, store = _env(aws_env)
     repos.users.set_state(
         "awaiting_partial_picks",
         {"flow": "supps", "selected": ["Creatine"], "all_names": ["Creatine", "Omega-3"]},
     )
 
-    with patch("apex.handlers.callback.send") as mock_send, \
-         patch("apex.handlers.callback.answer_callback"):
+    with (
+        patch("apex.handlers.callback.send") as mock_send,
+        patch("apex.handlers.callback.answer_callback"),
+    ):
         handle_callback(_cq("supps:partial:done"), repos=repos, store=store)
 
     logs = repos.logs.get_day(local_today("America/New_York").isoformat())
@@ -173,10 +193,13 @@ def test_supps_partial_done_writes_fraction_and_clears_state(aws_env):
 
 def test_unknown_callback_is_ignored(aws_env):
     from apex.handlers.callback import handle_callback
+
     repos, store = _env(aws_env)
 
-    with patch("apex.handlers.callback.send") as mock_send, \
-         patch("apex.handlers.callback.answer_callback"):
+    with (
+        patch("apex.handlers.callback.send") as mock_send,
+        patch("apex.handlers.callback.answer_callback"),
+    ):
         handle_callback(_cq("bogus:data"), repos=repos, store=store)
 
     assert repos.logs.get_day(date.today().isoformat()) == []

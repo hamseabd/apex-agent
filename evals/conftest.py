@@ -8,6 +8,7 @@ free; execution requires credentials.
 Enable a live run with:
     APEX_EVAL_LIVE=1 BEDROCK_MODEL_ID=... AWS_PROFILE=...  pytest evals/ -m capability
 """
+
 from __future__ import annotations
 
 import os
@@ -28,11 +29,16 @@ os.environ.setdefault("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--eval-trials", action="store", default="1", type=int,
+        "--eval-trials",
+        action="store",
+        default="1",
+        type=int,
         help="Number of trials per case (pass^k for reliability-critical cases).",
     )
     parser.addoption(
-        "--record", action="store_true", default=False,
+        "--record",
+        action="store_true",
+        default=False,
         help="Record a passing transcript as the reference artifact for a case.",
     )
 

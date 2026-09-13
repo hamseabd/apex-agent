@@ -1,6 +1,6 @@
 # Apex — Self-Hosted Health Accountability Bot
 
-![Tests](https://github.com/hamseabd/apex-agent/actions/workflows/test.yml/badge.svg)
+[![CI](https://github.com/hamseabd/apex-agent/actions/workflows/test.yml/badge.svg)](https://github.com/hamseabd/apex-agent/actions/workflows/test.yml)
 
 > A Telegram health coach that builds its own tools from your protocol. Protocol-driven. Claude-powered. Runs entirely on your AWS account.
 

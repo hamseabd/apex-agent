@@ -5,7 +5,9 @@ import re
 
 def inline_choice(buttons: list[tuple[str, str]]) -> dict:
     """Single-row inline keyboard. buttons = [(label, callback_data), ...]"""
-    return {"inline_keyboard": [[{"text": label, "callback_data": data} for label, data in buttons]]}
+    return {
+        "inline_keyboard": [[{"text": label, "callback_data": data} for label, data in buttons]]
+    }
 
 
 def multi_select_chips(items: list[tuple[str, str, bool]], done_data: str) -> dict:
@@ -25,19 +27,23 @@ def multi_select_chips(items: list[tuple[str, str, bool]], done_data: str) -> di
 
 
 def supplement_check_keyboard() -> dict:
-    return inline_choice([
-        ("✅ All", "supps:all"),
-        ("🟡 Some", "supps:partial"),
-        ("❌ None", "supps:none"),
-    ])
+    return inline_choice(
+        [
+            ("✅ All", "supps:all"),
+            ("🟡 Some", "supps:partial"),
+            ("❌ None", "supps:none"),
+        ]
+    )
 
 
 def compound_check_keyboard() -> dict:
-    return inline_choice([
-        ("✅ All", "compounds:all"),
-        ("🟡 Partial", "compounds:partial"),
-        ("❌ None", "compounds:none"),
-    ])
+    return inline_choice(
+        [
+            ("✅ All", "compounds:all"),
+            ("🟡 Partial", "compounds:partial"),
+            ("❌ None", "compounds:none"),
+        ]
+    )
 
 
 def _slug(name: str) -> str:

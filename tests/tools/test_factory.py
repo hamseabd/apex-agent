@@ -28,23 +28,24 @@ def _no_real_knowledge_store(monkeypatch):
 
 
 def _make_protocol(metric_names: list[str]) -> Protocol:
-    return Protocol(**{
-        "version": "2",
-        "profile": {
-            "name": "Alex",
-            "goal": "recomp",
-            "timezone": "America/New_York",
-            "start_date": "2026-05-19",
-        },
-        "tracking": {
-            "metrics": [{"name": n, "type": "numeric"} for n in metric_names]
-        },
-        "schedule": {},
-    })
+    return Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "Alex",
+                "goal": "recomp",
+                "timezone": "America/New_York",
+                "start_date": "2026-05-19",
+            },
+            "tracking": {"metrics": [{"name": n, "type": "numeric"} for n in metric_names]},
+            "schedule": {},
+        }
+    )
 
 
 def test_factory_generates_log_and_read_tool_per_metric():
     from apex.tools.factory import build_tools
+
     repos = MagicMock()
     protocol = _make_protocol(["sleep", "protein", "water"])
     tools = build_tools(protocol, repos)
@@ -60,6 +61,7 @@ def test_factory_generates_log_and_read_tool_per_metric():
 
 def test_factory_no_compound_tools_when_no_compounds():
     from apex.tools.factory import build_tools
+
     repos = MagicMock()
     protocol = _make_protocol(["sleep"])
     tools = build_tools(protocol, repos)
@@ -69,6 +71,7 @@ def test_factory_no_compound_tools_when_no_compounds():
 
 def test_factory_correct_tool_count():
     from apex.tools.factory import build_tools
+
     repos = MagicMock()
     store = MagicMock()
     protocol = _make_protocol(["sleep", "protein"])
@@ -79,6 +82,7 @@ def test_factory_correct_tool_count():
 
 def test_log_tool_writes_to_repo():
     from apex.tools.factory import build_tools
+
     repos = MagicMock()
     protocol = _make_protocol(["sleep"])
     tools = build_tools(protocol, repos)
@@ -95,10 +99,9 @@ def test_log_tool_writes_to_repo():
 
 def test_read_tool_queries_repo():
     from apex.tools.factory import build_tools
+
     repos = MagicMock()
-    repos.logs.get_range.return_value = [
-        {"GSI1SK": "2026-05-19", "value": 7.5, "metric": "sleep"}
-    ]
+    repos.logs.get_range.return_value = [{"GSI1SK": "2026-05-19", "value": 7.5, "metric": "sleep"}]
     protocol = _make_protocol(["sleep"])
     tools = build_tools(protocol, repos)
 
@@ -112,13 +115,25 @@ def test_read_tool_queries_repo():
 
 def test_metric_with_unit_shows_unit_in_confirmation():
     from apex.tools.factory import build_tools
+
     repos = MagicMock()
-    protocol = Protocol(**{
-        "version": "2",
-        "profile": {"name": "Alex", "goal": "recomp", "timezone": "UTC", "start_date": "2026-05-19"},
-        "tracking": {"metrics": [{"name": "sleep", "type": "numeric", "unit": "hours", "daily_target": 8}]},
-        "schedule": {},
-    })
+    protocol = Protocol(
+        **{
+            "version": "2",
+            "profile": {
+                "name": "Alex",
+                "goal": "recomp",
+                "timezone": "UTC",
+                "start_date": "2026-05-19",
+            },
+            "tracking": {
+                "metrics": [
+                    {"name": "sleep", "type": "numeric", "unit": "hours", "daily_target": 8}
+                ]
+            },
+            "schedule": {},
+        }
+    )
     tools = build_tools(protocol, repos)
     log_sleep = next(t for t in tools if t.__name__ == "log_sleep")
     with patch("apex.tools.factory.local_today", return_value=date(2026, 5, 19)):
