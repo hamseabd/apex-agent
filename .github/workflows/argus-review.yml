@@ -10,7 +10,9 @@
 # app, which must be installed on this repository. This workflow's own token
 # stays read-only; the app token posts the review.
 # It runs once, when the pull request opens or leaves draft; a maintainer can
-# rerun it by toggling the pull request through draft.
+# rerun it by toggling the pull request through draft. The called workflow
+# keys its own concurrency group on the pull request number; adding one here
+# with the same key makes GitHub cancel both as a deadlock.
 
 name: argus-review
 
@@ -20,10 +22,6 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: argus-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 
 jobs:
   review:
