@@ -1,8 +1,7 @@
-from datetime import date
-
+from apex.domain.dates import local_today
 from apex.infra.db import LogRepository, UserRepository
 
-_TODAY = date.today().isoformat()
+_TODAY = local_today().isoformat()
 
 
 def test_log_write_and_read(ddb_table):
