@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 from apex.domain.dates import local_today
@@ -30,7 +30,7 @@ def _protocol(compounds: list[dict] | None = None) -> Protocol:
 
 
 def _on_cycle_compounds() -> list[dict]:
-    start = (date.today() - timedelta(days=9)).isoformat()
+    start = (local_today() - timedelta(days=9)).isoformat()
     return [
         {
             "name": "BPC-157",
@@ -202,5 +202,5 @@ def test_unknown_callback_is_ignored(aws_env):
     ):
         handle_callback(_cq("bogus:data"), repos=repos, store=store)
 
-    assert repos.logs.get_day(date.today().isoformat()) == []
+    assert repos.logs.get_day(local_today().isoformat()) == []
     mock_send.assert_not_called()

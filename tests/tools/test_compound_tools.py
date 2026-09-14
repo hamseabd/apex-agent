@@ -1,6 +1,7 @@
-from datetime import date, timedelta
+from datetime import timedelta
 from unittest.mock import MagicMock
 
+from apex.domain.dates import local_today
 from apex.domain.models import Protocol
 
 
@@ -57,7 +58,7 @@ def test_get_compound_status_not_started():
 def test_get_compound_status_on_cycle_shows_dose():
     from apex.tools.compound import build_compound_tools
 
-    start = (date.today() - timedelta(days=9)).isoformat()
+    start = (local_today() - timedelta(days=9)).isoformat()
     protocol = _protocol([_compound(start_date=start)])
     tools = build_compound_tools(protocol.compounds, MagicMock(), MagicMock())
     status = next(t for t in tools if t.__name__ == "get_compound_status")
@@ -87,7 +88,7 @@ def test_activate_compound_sets_start_date_and_saves():
 
     store.save.assert_called_once()
     saved = store.save.call_args[0][0]
-    assert saved.compounds[0].start_date == date.today().isoformat()
+    assert saved.compounds[0].start_date == local_today().isoformat()
     assert "BPC-157" in result
     assert "✅" in result
 
