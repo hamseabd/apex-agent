@@ -1,7 +1,30 @@
 from datetime import date
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+import apex.tools.factory as factory
 from apex.domain.models import Protocol
+
+
+class _FakeKnowledgeStore:
+    def __init__(self, has_corpus):
+        self._has = has_corpus
+
+    def exists(self):
+        return self._has
+
+    def load_corpus(self):
+        return [{"source": "x.md", "text": "data"}] if self._has else []
+
+    def total_tokens(self):
+        return 10
+
+
+@pytest.fixture(autouse=True)
+def _no_real_knowledge_store(monkeypatch):
+    """Default: no corpus, so build_tools never hits real S3 during factory tests."""
+    monkeypatch.setattr(factory, "KnowledgeStore", lambda: _FakeKnowledgeStore(False))
 
 
 def _make_protocol(metric_names: list[str]) -> Protocol:
@@ -117,3 +140,20 @@ def test_metric_with_unit_shows_unit_in_confirmation():
         result = log_sleep(value=7.5)
     assert "hours" in result
     assert "8" in result  # target shown
+
+
+def test_knowledge_tool_present_when_corpus_exists(monkeypatch):
+    monkeypatch.setattr(factory, "KnowledgeStore", lambda: _FakeKnowledgeStore(True))
+    repos = MagicMock()
+    protocol = _make_protocol(["sleep"])
+    tools = factory.build_tools(protocol, repos)
+    names = [t.__name__ for t in tools]
+    assert "ask_knowledge_base" in names
+
+
+def test_knowledge_tool_absent_when_no_corpus():
+    repos = MagicMock()
+    protocol = _make_protocol(["sleep"])
+    tools = factory.build_tools(protocol, repos)
+    names = [t.__name__ for t in tools]
+    assert "ask_knowledge_base" not in names

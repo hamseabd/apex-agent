@@ -200,7 +200,7 @@ def _finalize(protocol: dict, repos) -> None:
     from apex.domain.models import Protocol as ProtocolModel
     from apex.infra.storage import ProtocolStore
 
-    send("✅ Protocol locked. Setting up your knowledge base...")
+    send("✅ Protocol locked. Saving your protocol...")
     repos.users.clear_state()
 
     # Remove null compounds section if empty
@@ -242,7 +242,9 @@ def _finalize(protocol: dict, repos) -> None:
         send(
             "Done! Your reminders are live — the hourly scheduler picks them up "
             "straight from your protocol.\n\n"
-            "Just talk to me naturally — I'll log anything you mention."
+            "Just talk to me naturally — I'll log anything you mention. "
+            "You can also ask health/research questions, and I'll answer from the "
+            "knowledge base with sources (or tell you if I don't have one)."
         )
     except Exception as e:
         logger.error(f"Setup finalization failed: {e}")
@@ -259,7 +261,8 @@ def _ask_claude(user_text: str, step: str, protocol_so_far: dict, instruction: s
             '"extracted": <dict of extracted data or null>, '
             '"advance": <true if you extracted all required data for this stage, false otherwise>}\n\n'  # noqa: E501
             "If the user asks a research question instead of answering, "
-            "answer it in reply and set advance=false."
+            "give a brief general reply, note that detailed grounded answers with "
+            "sources are available after setup, and set advance=false."
         ),
         user_message=(f"Protocol so far: {json.dumps(protocol_so_far)}\nUser: {user_text}"),
     )

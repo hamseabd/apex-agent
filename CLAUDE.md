@@ -79,10 +79,11 @@ pip install -e ".[dev]"
 
 ```
 apex/
-├── domain/         # Pure Python — models.py (Protocol, Metric, Compound, etc.)
-├── infra/          # AWS adapters — db.py, storage.py, telegram.py, telemetry.py
-├── tools/          # factory.py (dynamic tool generator), core.py, compound.py
+├── domain/         # Pure Python — models.py, knowledge.py (corpus assembly + grounding prompt)
+├── infra/          # AWS adapters — db.py, storage.py, telegram.py, telemetry.py, knowledge.py (S3 corpus)
+├── tools/          # factory.py (dynamic tool generator), core.py, compound.py, knowledge.py (ask_knowledge_base)
 ├── handlers/       # message.py, setup.py, callback.py
+knowledge/          # Repo-default example corpus doc (real corpus lives on S3, like apex.yaml)
 ├── scheduler/      # jobs.py (scheduled job functions)
 ├── agent.py        # build_agent(protocol, repos, store) → Strands Agent
 └── settings.py     # get_settings() via pydantic-settings
@@ -127,6 +128,7 @@ Tests use moto fixtures from `tests/conftest.py` — no real AWS calls needed.
 - `apex.yaml` is gitignored — it lives on S3, never in the repo.
 - `.notes/` is gitignored — contains internal architecture docs, ADRs, sprint notes.
 - The `compounds` section in `apex.yaml` is fully optional. Remove it and all compound logic is skipped gracefully.
+- **Knowledge base (grounded Q&A):** the `ask_knowledge_base` tool answers health/research questions grounded ONLY in the corpus docs under `knowledge/` in the S3 bucket (operator-loaded, same pattern as `apex.yaml`; the repo ships one example doc). It cites the source filename and refuses ("I don't have a grounded source for that.") when the corpus lacks an answer. Design is **prompt-caching, NOT vector RAG**: for a small personal corpus (<~500 pages) Anthropic's guidance is to cache the whole corpus in the prompt rather than build a vector store — cheaper, no always-on cost, and better answers (whole docs, not chunks). The tool appears only when a corpus exists and degrades gracefully if S3 is unreachable (`factory.py:_knowledge_corpus_available`). Vector RAG (chunking/embeddings/hybrid/rerank) is a documented future upgrade, warranted only once the corpus outgrows caching (~150K-token warn threshold in `tools/knowledge.py`).
 - `build_tools()` in `factory.py` is called at Lambda cold start. Adding a metric to the protocol creates new tools on next cold start — no deploy needed.
 - State machine TTL: 10 minutes for most states, 30 minutes for `setup_in_progress`.
 - DynamoDB TTL is enabled on the `ttl` attribute — state records auto-expire.

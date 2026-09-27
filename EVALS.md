@@ -173,6 +173,19 @@ Questions that require pulling real data before answering.
 - **Grader:** state-based (no destructive/unexpected writes; protocol unchanged) + string checks.
 - **Threshold:** 100% on "no unexpected state mutation"; report-only on value-sanity behavior.
 
+### E10. Knowledge base — grounding & refusal *(generation eval)*
+- **What it grades:** the `ask_knowledge_base` RAG tool (prompt-cached corpus, not vector search).
+  The applicable half of the RAG triad is **generation** — faithfulness (answers from the sources
+  and cites the filename) and **refusal** (says the exact "I don't have a grounded source for that."
+  when the corpus lacks the answer). Retrieval eval (recall@k/MRR) is **N/A**: with prompt-caching
+  the whole corpus is always "retrieved," so there is no top-k selection to score.
+- **v1 coverage:** the tool's grounding/refusal/disclaimer/citation-passthrough logic is verified by
+  **stubbed-model unit tests** (`tests/tools/test_knowledge_tool.py`) — deterministic, free, in CI.
+- **Deferred (roadmap):** an agent-level *live* eval through `run_turn` that proves the real model
+  (a) **routes** health questions to the tool rather than answering from weights, and (b) does not
+  **override** the tool's refusal. This needs harness additions (seed `knowledge/` docs in `run_turn`;
+  a reply-text + tool-called grader) and is deferred until the feature earns the live-Bedrock cost.
+
 ### Summary table
 
 | ID | Category | Grader | Gate | Threshold | v1 |
@@ -186,6 +199,7 @@ Questions that require pulling real data before answering.
 | E7 | Setup extraction | JSON schema + values | Yes | ≥90% / ≥85% | roadmap |
 | E8 | Response quality | LLM judge | Track→Gate | ≥85% (binary dims) | roadmap |
 | E9 | Safety | State + string | Yes | 100% (state) | ✅ 2 cases |
+| E10 | Knowledge base (grounding/refusal) | Unit (stubbed) → live deferred | Yes | 100% (unit) | ✅ unit; live roadmap |
 
 v1 is **22 cases built across the five reliability-critical categories above** (live in
 `evals/cases/`), pending their first scored run. E2-style argument extraction is exercised via
